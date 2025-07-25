@@ -245,9 +245,16 @@ const FeedView = () => {
     }
     
     try {
-      // For now, we'll just use a placeholder until resharePost is implemented
-      console.log("Reshare functionality not yet implemented for post:", postId);
-      setError("Reshare functionality not yet implemented");
+      const result = await backendService.resharePost(BigInt(postId));
+      
+      if (result && 'Ok' in result) {
+        // Add to reshared posts set
+        setResharedPosts(prev => new Set([...prev, postId]));
+        // Refresh posts to get updated reshare counts
+        fetchPosts();
+      } else if (result && 'Err' in result) {
+        setError(result.Err);
+      }
     } catch (err) {
       console.error('Error resharing post:', err);
       setError('Failed to reshare post');

@@ -286,7 +286,7 @@ export const backendService = {
     console.log("Getting all posts");
     try {
       const actor = await this.getAuthenticatedActor();
-      const result = await actor.get_posts();
+      const result = await actor.get_feed(100); // Get up to 100 posts
       console.log("Get all posts result:", result);
       return result;
     } catch (error) {
@@ -302,9 +302,13 @@ export const backendService = {
     console.log("Getting posts for user:", userId);
     try {
       const actor = await this.getAuthenticatedActor();
-      const result = await actor.get_user_posts(Principal.fromText(userId));
-      console.log("Get user posts result:", result);
-      return result;
+      // For now, get all posts and filter by user
+      const allPosts = await actor.get_feed(100) as any[];
+      const userPosts = allPosts.filter((post: any) => 
+        post.author.toString() === userId
+      );
+      console.log("Get user posts result:", userPosts);
+      return userPosts;
     } catch (error) {
       console.error("Error getting user posts:", error);
       throw error;
@@ -318,9 +322,11 @@ export const backendService = {
     console.log("Getting post:", postId.toString());
     try {
       const actor = await this.getAuthenticatedActor();
-      const result = await actor.get_post(postId);
-      console.log("Get post result:", result);
-      return result;
+      // For now, get all posts and find the specific one
+      const allPosts = await actor.get_feed(100) as any[];
+      const post = allPosts.find((post: any) => post.id === postId);
+      console.log("Get post result:", post);
+      return post;
     } catch (error) {
       console.error("Error getting post:", error);
       throw error;
@@ -334,9 +340,9 @@ export const backendService = {
     console.log("Deleting post with ID:", postId);
     try {
       const actor = await this.getAuthenticatedActor();
-      const result = await actor.delete_post(postId);
-      console.log("Delete post result:", result);
-      return result;
+      // Note: delete_post method doesn't exist in the backend yet
+      console.log("Delete post not implemented yet");
+      throw new Error("Delete post functionality not implemented yet");
     } catch (error) {
       console.error("Error deleting post:", error);
       throw error;
