@@ -55,10 +55,10 @@ const ThemeToggle = () => {
   
   return (
     <motion.button
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.9 }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       onClick={toggleTheme}
-      className="p-3 rounded-xl modern-card border border-accent/20 hover:border-accent/40 transition-all duration-300"
+      className="p-3 rounded-xl bg-card border border-border hover:border-accent/40 transition-all duration-300 text-text hover:text-accent"
     >
       <AnimatePresence mode="wait">
         {theme === 'dark' ? (
@@ -69,7 +69,7 @@ const ThemeToggle = () => {
             exit={{ rotate: 90, opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <Sun className="w-5 h-5 text-warning" />
+            <Sun className="w-5 h-5" />
           </motion.div>
         ) : (
           <motion.div
@@ -79,7 +79,7 @@ const ThemeToggle = () => {
             exit={{ rotate: -90, opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <Moon className="w-5 h-5 text-accent" />
+            <Moon className="w-5 h-5" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -102,13 +102,13 @@ const NavItem = ({
   badge?: number;
 }) => (
   <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
     onClick={onClick}
     className={`relative flex items-center space-x-3 w-full p-4 rounded-xl transition-all duration-300 ${
       isActive 
-        ? 'bg-gradient text-white glow' 
-        : 'text-text-secondary hover:text-text hover:modern-card border border-transparent hover:border-accent/20'
+        ? 'bg-accent text-white shadow-lg' 
+        : 'text-text hover:text-text bg-card hover:bg-card/80 border border-border hover:border-accent/40'
     }`}
   >
     <Icon className="w-5 h-5" />
@@ -117,7 +117,7 @@ const NavItem = ({
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
-        className="absolute -top-1 -right-1 w-5 h-5 bg-error text-error-foreground rounded-full text-xs flex items-center justify-center font-bold"
+        className="absolute -top-1 -right-1 w-5 h-5 bg-error text-white rounded-full text-xs flex items-center justify-center font-bold"
       >
         {badge > 99 ? '99+' : badge}
       </motion.div>
@@ -174,10 +174,7 @@ const AppContent = () => {
 
   const navigationItems = [
     { icon: Home, label: 'Home', view: 'feed' as const },
-    { icon: Users, label: 'Explore', view: 'explore' as const },
     { icon: Hash, label: 'Trending', view: 'trending' as const },
-    { icon: Bell, label: 'Notifications', view: 'notifications' as const, badge: notificationsCount },
-    { icon: MessageCircle, label: 'Chat', view: 'chat' as const },
     { icon: Wallet, label: 'Wallet', view: 'wallet' as const },
     { icon: User, label: 'Profile', view: 'profile' as const },
   ];
@@ -209,12 +206,12 @@ const AppContent = () => {
       <motion.aside
         initial={{ x: -300 }}
         animate={{ x: 0 }}
-        className="w-80 modern-card border-r border-accent/20 p-6 flex flex-col"
+        className="w-80 bg-card border-r border-border p-6 flex flex-col sticky top-0 h-screen overflow-y-auto"
       >
         {/* Logo */}
-          <div className="mb-8">
+        <div className="mb-8">
           <ToknTalkLogo />
-          </div>
+        </div>
 
         {/* Navigation */}
         <nav className="flex-1 space-y-3">
@@ -226,25 +223,19 @@ const AppContent = () => {
               isActive={currentView === item.view}
               onClick={() => {
                 setCurrentView(item.view);
-                // Clear chat target when navigating away from chat
-                if (item.view !== 'chat') {
-                  setChatTargetUserId(null);
-                }
               }}
-              badge={item.badge}
             />
           ))}
         </nav>
 
         {/* Bottom Actions */}
-        <div className="space-y-3 pt-6 border-t border-accent/20">
+        <div className="space-y-3 pt-6 border-t border-border">
           <ThemeToggle />
-          
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleLogout}
-            className="flex items-center space-x-3 w-full p-4 rounded-xl text-error hover:bg-error/10 transition-all duration-300 modern-card border border-error/20 hover:border-error/40"
+            className="flex items-center space-x-3 w-full p-4 rounded-xl text-error hover:bg-error/10 transition-all duration-300 bg-card border border-error/20 hover:border-error/40"
           >
             <LogOut className="w-5 h-5" />
             <span className="font-medium">Logout</span>
@@ -253,7 +244,7 @@ const AppContent = () => {
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden flex flex-col">
+      <main className="flex-1 flex flex-col min-h-screen">
         {/* Top Navbar */}
         <TopNavbar
           onSearch={handleSearch}
@@ -264,7 +255,7 @@ const AppContent = () => {
         />
         
         {/* Content Area */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentView}
@@ -272,7 +263,7 @@ const AppContent = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
-              className="h-full overflow-y-auto"
+              className="h-full"
             >
               {renderView()}
             </motion.div>
@@ -297,7 +288,7 @@ const AppContent = () => {
           </motion.div>
         )}
       </AnimatePresence>
-      </div>
+    </div>
   );
 };
 
