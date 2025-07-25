@@ -30,6 +30,7 @@ import {
   ChatView 
 } from './views';
 import LandingPage from './views/LandingPage';
+import ProfileCheck from './components/ProfileCheck';
 
 // ToknTalk Logo Component
 const ToknTalkLogo = () => (
@@ -128,18 +129,26 @@ const AppContent = () => {
   const [currentView, setCurrentView] = useState<'feed' | 'explore' | 'trending' | 'notifications' | 'chat' | 'profile'>('feed');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [notificationsCount, setNotificationsCount] = useState(0);
+  const [profileComplete, setProfileComplete] = useState(false);
 
   const handleNavigateToChat = () => {
     setCurrentView('chat');
   };
 
   const handleLogout = () => {
+    // Clear profile ID from localStorage on logout
+    localStorage.removeItem('tokntalk_profile_id');
     logout();
   };
 
   // If not authenticated, show landing page
   if (!authState.isAuthenticated) {
     return <LandingPage />;
+  }
+
+  // If authenticated but profile not complete, show profile check
+  if (!profileComplete) {
+    return <ProfileCheck onProfileComplete={() => setProfileComplete(true)} />;
   }
 
   const navigationItems = [

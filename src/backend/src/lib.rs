@@ -3,6 +3,7 @@ use ic_cdk::api::time;
 use ic_cdk::{query, update};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 
 // Data structures
@@ -94,6 +95,49 @@ pub struct TrendingTopic {
     pub hashtag: String,
     pub count: u64,
     pub last_used: u64,
+}
+
+// Wallet structures
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct Wallet {
+    pub owner: Principal,
+    pub balance: u64,
+    pub transactions: Vec<Transaction>,
+    pub created_at: u64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct Transaction {
+    pub id: u64,
+    pub from: Principal,
+    pub to: Principal,
+    pub amount: u64,
+    pub transaction_type: TransactionType,
+    pub timestamp: u64,
+    pub status: TransactionStatus,
+    pub memo: Option<String>,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub enum TransactionType {
+    Transfer,
+    Tip,
+    Reward,
+    Purchase,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub enum TransactionStatus {
+    Pending,
+    Completed,
+    Failed,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct TransferRequest {
+    pub to: Principal,
+    pub amount: u64,
+    pub memo: Option<String>,
 }
 
 // Result types
