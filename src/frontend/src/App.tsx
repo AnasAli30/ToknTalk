@@ -15,7 +15,9 @@ import {
   Sparkles,
   Wallet,
   Bot,
-  Cpu
+  Cpu,
+  Menu,
+  X
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -40,10 +42,10 @@ const ToknTalkLogo = () => (
     className="flex items-center space-x-3"
     whileHover={{ scale: 1.05 }}
   >
-    <div className="w-10 h-10 bg-gradient rounded-xl flex items-center justify-center glow">
-      <Sparkles className="w-6 h-6 text-white" />
+    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient rounded-xl flex items-center justify-center glow">
+      <Sparkles className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
     </div>
-    <span className="text-xl font-bold gradient-text">
+    <span className="text-lg sm:text-xl font-bold gradient-text">
       ToknTalk
     </span>
   </motion.div>
@@ -58,7 +60,7 @@ const ThemeToggle = () => {
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={toggleTheme}
-      className="p-3 rounded-xl bg-card border border-border hover:border-accent/40 transition-all duration-300 text-text hover:text-accent"
+      className="p-2 sm:p-3 rounded-xl bg-card border border-border hover:border-accent/40 transition-all duration-300 text-text hover:text-accent"
     >
       <AnimatePresence mode="wait">
         {theme === 'dark' ? (
@@ -69,7 +71,7 @@ const ThemeToggle = () => {
             exit={{ rotate: 90, opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <Sun className="w-5 h-5" />
+            <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
           </motion.div>
         ) : (
           <motion.div
@@ -79,7 +81,7 @@ const ThemeToggle = () => {
             exit={{ rotate: -90, opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <Moon className="w-5 h-5" />
+            <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -105,25 +107,168 @@ const NavItem = ({
     whileHover={{ scale: 1.02 }}
     whileTap={{ scale: 0.98 }}
     onClick={onClick}
-    className={`relative flex items-center space-x-3 w-full p-4 rounded-xl transition-all duration-300 ${
+    className={`relative flex items-center space-x-3 w-full p-3 sm:p-4 rounded-xl transition-all duration-300 ${
       isActive 
         ? 'bg-accent text-white shadow-lg' 
         : 'text-text hover:text-text bg-card hover:bg-card/80 border border-border hover:border-accent/40'
     }`}
   >
-    <Icon className="w-5 h-5" />
-    <span className="font-medium">{label}</span>
+    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+    <span className="font-medium text-sm sm:text-base">{label}</span>
     {badge && badge > 0 && (
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
-        className="absolute -top-1 -right-1 w-5 h-5 bg-error text-white rounded-full text-xs flex items-center justify-center font-bold"
+        className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-error text-white rounded-full text-xs flex items-center justify-center font-bold"
       >
         {badge > 99 ? '99+' : badge}
       </motion.div>
     )}
   </motion.button>
 );
+
+// Mobile Navigation Menu
+const MobileNavMenu = ({ 
+  isOpen, 
+  onClose, 
+  currentView, 
+  onNavigate,
+  onLogout,
+  notificationsCount = 0
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  currentView: string;
+  onNavigate: (view: 'feed' | 'explore' | 'trending' | 'notifications' | 'chat' | 'profile' | 'wallet') => void;
+  onLogout: () => void;
+  notificationsCount?: number;
+}) => {
+  const navigationItems = [
+    { icon: Home, label: 'Home', view: 'feed' as const },
+    { icon: Hash, label: 'Trending', view: 'trending' as const },
+    { icon: Wallet, label: 'Wallet', view: 'wallet' as const },
+    { icon: User, label: 'Profile', view: 'profile' as const },
+  ];
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={onClose}
+          />
+          
+          {/* Mobile Menu */}
+          <motion.div
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            className="fixed left-0 top-0 h-full w-80 bg-card/95 backdrop-blur-md border-r border-border z-50 lg:hidden flex flex-col"
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-border">
+              <div className="flex items-center justify-between">
+                <ToknTalkLogo />
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-lg bg-background hover:bg-background/80 transition-colors"
+                >
+                  <X className="w-5 h-5 text-text" />
+                </button>
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 p-4 space-y-3">
+              {navigationItems.map((item) => (
+                <NavItem
+                  key={item.label}
+                  icon={item.icon}
+                  label={item.label}
+                  isActive={currentView === item.view}
+                  onClick={() => {
+                    onNavigate(item.view);
+                    onClose();
+                  }}
+                />
+              ))}
+              
+              {/* Additional Mobile Actions */}
+              <div className="pt-4 border-t border-border">
+                <div className="grid grid-cols-2 gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      onNavigate('notifications');
+                      onClose();
+                    }}
+                    className={`relative flex items-center justify-center gap-2 p-3 rounded-xl transition-all duration-300 ${
+                      currentView === 'notifications'
+                        ? 'bg-accent text-white'
+                        : 'text-text hover:text-text bg-card hover:bg-card/80 border border-border hover:border-accent/40'
+                    }`}
+                  >
+                    <Bell className="w-4 h-4" />
+                    <span className="font-medium text-sm">Notifications</span>
+                    {notificationsCount > 0 && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1 -right-1 w-4 h-4 bg-error text-white rounded-full text-xs flex items-center justify-center font-bold"
+                      >
+                        {notificationsCount > 99 ? '99+' : notificationsCount}
+                      </motion.div>
+                    )}
+                  </motion.button>
+                  
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      onNavigate('chat');
+                      onClose();
+                    }}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl transition-all duration-300 ${
+                      currentView === 'chat'
+                        ? 'bg-accent text-white'
+                        : 'text-text hover:text-text bg-card hover:bg-card/80 border border-border hover:border-accent/40'
+                    }`}
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span className="font-medium text-sm">Chat</span>
+                  </motion.button>
+                </div>
+              </div>
+            </nav>
+
+            {/* Bottom Actions */}
+            <div className="p-4 border-t border-border space-y-3">
+              <ThemeToggle />
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  onLogout();
+                  onClose();
+                }}
+                className="flex items-center space-x-3 w-full p-3 rounded-xl text-error hover:bg-error/10 transition-all duration-300 bg-card border border-error/20 hover:border-error/40"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="font-medium text-sm">Logout</span>
+              </motion.button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
 
 // Main App Content
 const AppContent = () => {
@@ -134,8 +279,7 @@ const AppContent = () => {
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [profileComplete, setProfileComplete] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     // Clear profile ID from localStorage on logout
@@ -201,75 +345,105 @@ const AppContent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-text flex">
-      {/* Sidebar Navigation */}
-      <motion.aside
-        initial={{ x: -300 }}
-        animate={{ x: 0 }}
-        className="w-80 bg-card border-r border-border p-6 flex flex-col sticky top-0 h-screen overflow-y-auto"
-      >
-        {/* Logo */}
-        <div className="mb-8">
+    <div className="min-h-screen bg-background text-text">
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-card/80 backdrop-blur-md border-b border-border">
+        <div className="flex items-center justify-between p-4">
           <ToknTalkLogo />
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 space-y-3">
-          {navigationItems.map((item) => (
-            <NavItem
-              key={item.label}
-              icon={item.icon}
-              label={item.label}
-              isActive={currentView === item.view}
-              onClick={() => {
-                setCurrentView(item.view);
-              }}
-            />
-          ))}
-        </nav>
-
-        {/* Bottom Actions */}
-        <div className="space-y-3 pt-6 border-t border-border">
-          <ThemeToggle />
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleLogout}
-            className="flex items-center space-x-3 w-full p-4 rounded-xl text-error hover:bg-error/10 transition-all duration-300 bg-card border border-error/20 hover:border-error/40"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium">Logout</span>
-          </motion.button>
-        </div>
-      </motion.aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-h-screen">
-        {/* Top Navbar */}
-        <TopNavbar
-          onSearch={handleSearch}
-          onNavigateToNotifications={handleNavigateToNotifications}
-          onNavigateToChat={handleNavigateToChat}
-          notificationsCount={notificationsCount}
-          currentView={currentView}
-        />
-        
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentView}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-              className="h-full"
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 rounded-lg bg-background hover:bg-background/80 transition-colors"
             >
-              {renderView()}
-            </motion.div>
-          </AnimatePresence>
+              <Menu className="w-5 h-5 text-text" />
+            </button>
+          </div>
         </div>
-      </main>
+      </div>
+
+      <div className="flex">
+        {/* Desktop Sidebar */}
+        <motion.aside
+          initial={{ x: -300 }}
+          animate={{ x: 0 }}
+          className="hidden lg:flex w-80 bg-card border-r border-border p-6 flex-col sticky top-0 h-screen overflow-y-auto"
+        >
+          {/* Logo */}
+          <div className="mb-8">
+            <ToknTalkLogo />
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 space-y-3">
+            {navigationItems.map((item) => (
+              <NavItem
+                key={item.label}
+                icon={item.icon}
+                label={item.label}
+                isActive={currentView === item.view}
+                onClick={() => {
+                  setCurrentView(item.view);
+                }}
+              />
+            ))}
+          </nav>
+
+          {/* Bottom Actions */}
+          <div className="space-y-3 pt-6 border-t border-border">
+            <ThemeToggle />
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleLogout}
+              className="flex items-center space-x-3 w-full p-4 rounded-xl text-error hover:bg-error/10 transition-all duration-300 bg-card border border-error/20 hover:border-error/40"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="font-medium">Logout</span>
+            </motion.button>
+          </div>
+        </motion.aside>
+
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col min-h-screen lg:ml-0">
+          {/* Top Navbar - Hidden on mobile, shown on desktop */}
+          <div className="hidden lg:block">
+            <TopNavbar
+              onSearch={handleSearch}
+              onNavigateToNotifications={handleNavigateToNotifications}
+              onNavigateToChat={handleNavigateToChat}
+              notificationsCount={notificationsCount}
+              currentView={currentView}
+            />
+          </div>
+          
+          {/* Content Area */}
+          <div className="flex-1 overflow-y-auto pt-16 lg:pt-0">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentView}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="h-full"
+              >
+                {renderView()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </main>
+      </div>
+
+      {/* Mobile Navigation Menu */}
+      <MobileNavMenu
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        currentView={currentView}
+        onNavigate={setCurrentView}
+        onLogout={handleLogout}
+        notificationsCount={notificationsCount}
+      />
 
       {/* Profile Details Modal */}
       <AnimatePresence>
