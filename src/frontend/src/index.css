@@ -132,9 +132,9 @@
   transition: background-color var(--transition-duration) ease, 
               border-color var(--transition-duration) ease, 
               color var(--transition-duration) ease;
-}
-
-body {
+  }
+  
+  body {
   font-family: 'Inter', system-ui, sans-serif;
   background-color: hsl(var(--background));
   color: hsl(var(--text));
@@ -243,8 +243,8 @@ body {
 
 .float {
   animation: float 6s ease-in-out infinite;
-}
-
+  }
+  
 /* Pulse animation */
 @keyframes pulse-glow {
   0%, 100% {
@@ -276,7 +276,7 @@ body {
   cursor: pointer;
   overflow: hidden;
   transition: all 0.3s ease;
-}
+  }
 
 .modern-button::before {
   content: '';
@@ -296,7 +296,7 @@ body {
 .modern-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px hsla(var(--accent), 0.3);
-}
+  }
 
 /* Card styles */
 .modern-card {
@@ -317,7 +317,7 @@ body {
   right: 0;
   height: 2px;
   background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
-}
+  }
 
 .modern-card:hover {
   border-color: hsla(var(--accent), 0.3);

@@ -100,9 +100,9 @@ pub struct TrendingTopic {
 // Wallet structures
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct Wallet {
-    pub owner: Principal,
+    pub user_id: Principal,
+    pub account_id: String,
     pub balance: u64,
-    pub transactions: Vec<Transaction>,
     pub created_at: u64,
 }
 
@@ -165,6 +165,11 @@ thread_local! {
     static MESSAGE_COUNTER: RefCell<u64> = RefCell::new(0);
     static INTERACTION_GRAPH: RefCell<HashMap<Principal, HashMap<Principal, u64>>> = RefCell::new(HashMap::new());
     static CONTENT_AFFINITY: RefCell<HashMap<Principal, HashMap<String, u64>>> = RefCell::new(HashMap::new());
+    
+    // Wallet storage
+    static WALLETS: RefCell<HashMap<Principal, Wallet>> = RefCell::new(HashMap::new());
+    static TRANSACTIONS: RefCell<HashMap<u64, Transaction>> = RefCell::new(HashMap::new());
+    static TRANSACTION_COUNTER: RefCell<u64> = RefCell::new(0);
 }
 
 // Helper functions
@@ -967,4 +972,187 @@ fn get_trending_topics(limit: u64) -> Vec<TrendingTopic> {
 #[query]
 fn whoami() -> Principal {
     ic_cdk::caller()
+}
+
+// Wallet helper functions
+fn create_account_identifier(user_id: Principal) -> String {
+    format!("account-{}", user_id.to_string())
+}
+
+fn get_or_create_wallet(user_id: Principal) -> Wallet {
+    WALLETS.with(|wallets| {
+        let mut wallets = wallets.borrow_mut();
+        if let Some(wallet) = wallets.get(&user_id) {
+            wallet.clone()
+        } else {
+            // Create new wallet with initial test ICP
+            let account_id = create_account_identifier(user_id);
+            // Give 1000 ICP (in e8s = 1000 * 100_000_000 = 100_000_000_000)
+            let initial_balance = 100_000_000_000u64; // 1000 ICP
+            let wallet = Wallet {
+                user_id,
+                account_id,
+                balance: initial_balance,
+                created_at: time(),
+            };
+            wallets.insert(user_id, wallet.clone());
+            wallet
+        }
+    })
+}
+
+// Wallet functions
+#[update]
+fn create_wallet() -> Result<Wallet, String> {
+    let user_id = ic_cdk::caller();
+    let wallet = get_or_create_wallet(user_id);
+    Result::Ok(wallet)
+}
+
+#[query]
+fn get_wallet() -> Result<Wallet, String> {
+    let user_id = ic_cdk::caller();
+    let wallet = get_or_create_wallet(user_id);
+    Result::Ok(wallet)
+}
+
+#[query]
+fn get_balance() -> Result<u64, String> {
+    let user_id = ic_cdk::caller();
+    let wallet = get_or_create_wallet(user_id);
+    Result::Ok(wallet.balance)
+}
+
+#[update]
+fn add_test_icp(amount: u64) -> Result<u64, String> {
+    let user_id = ic_cdk::caller();
+    WALLETS.with(|wallets| {
+        let mut wallets = wallets.borrow_mut();
+        if let Some(wallet) = wallets.get_mut(&user_id) {
+            wallet.balance += amount;
+            Result::Ok(wallet.balance)
+        } else {
+            Result::Err("Wallet not found".to_string())
+        }
+    })
+}
+
+#[update]
+fn transfer_tokens(to_user_id: Principal, amount: u64) -> Result<Transaction, String> {
+    let from_user_id = ic_cdk::caller();
+    
+    if from_user_id == to_user_id {
+        return Result::Err("Cannot transfer to yourself".to_string());
+    }
+    
+    if amount == 0 {
+        return Result::Err("Amount must be greater than 0".to_string());
+    }
+    
+    // Get or create wallets
+    let from_wallet = get_or_create_wallet(from_user_id);
+    let _to_wallet = get_or_create_wallet(to_user_id);
+    
+    // Check balance
+    if from_wallet.balance < amount {
+        return Result::Err("Insufficient balance".to_string());
+    }
+    
+    // Create transaction
+    let transaction_id = get_next_id(&TRANSACTION_COUNTER);
+    let transaction = Transaction {
+        id: transaction_id,
+        from: from_user_id,
+        to: to_user_id,
+        amount,
+        timestamp: time(),
+        transaction_type: TransactionType::Transfer,
+        status: TransactionStatus::Completed,
+        memo: None,
+    };
+    
+    // Update balances
+    WALLETS.with(|wallets| {
+        let mut wallets = wallets.borrow_mut();
+        if let Some(from_wallet) = wallets.get_mut(&from_user_id) {
+            from_wallet.balance -= amount;
+        }
+        if let Some(to_wallet) = wallets.get_mut(&to_user_id) {
+            to_wallet.balance += amount;
+        }
+    });
+    
+    // Store transaction
+    TRANSACTIONS.with(|transactions| {
+        transactions.borrow_mut().insert(transaction_id, transaction.clone());
+    });
+    
+    Result::Ok(transaction)
+}
+
+#[query]
+fn get_transaction_history(limit: u64) -> Vec<Transaction> {
+    let user_id = ic_cdk::caller();
+    TRANSACTIONS.with(|transactions| {
+        let mut user_transactions: Vec<Transaction> = transactions.borrow().values()
+            .filter(|tx| tx.from == user_id || tx.to == user_id)
+            .cloned()
+            .collect();
+        user_transactions.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        user_transactions.truncate(limit as usize);
+        user_transactions
+    })
+}
+
+#[update]
+fn tip_user(user_id: Principal, amount: u64) -> Result<Transaction, String> {
+    let from_user_id = ic_cdk::caller();
+    
+    if from_user_id == user_id {
+        return Result::Err("Cannot tip yourself".to_string());
+    }
+    
+    if amount == 0 {
+        return Result::Err("Tip amount must be greater than 0".to_string());
+    }
+    
+    // Get or create wallets
+    let from_wallet = get_or_create_wallet(from_user_id);
+    let _to_wallet = get_or_create_wallet(user_id);
+    
+    // Check balance
+    if from_wallet.balance < amount {
+        return Result::Err("Insufficient balance".to_string());
+    }
+    
+    // Create transaction
+    let transaction_id = get_next_id(&TRANSACTION_COUNTER);
+    let transaction = Transaction {
+        id: transaction_id,
+        from: from_user_id,
+        to: user_id,
+        amount,
+        timestamp: time(),
+        transaction_type: TransactionType::Tip,
+        status: TransactionStatus::Completed,
+        memo: None,
+    };
+    
+    // Update balances
+    WALLETS.with(|wallets| {
+        let mut wallets = wallets.borrow_mut();
+        if let Some(from_wallet) = wallets.get_mut(&from_user_id) {
+            from_wallet.balance -= amount;
+        }
+        if let Some(to_wallet) = wallets.get_mut(&user_id) {
+            to_wallet.balance += amount;
+        }
+    });
+    
+    // Store transaction
+    TRANSACTIONS.with(|transactions| {
+        transactions.borrow_mut().insert(transaction_id, transaction.clone());
+    });
+    
+    Result::Ok(transaction)
 }

@@ -65,6 +65,9 @@ type Result_1 = variant { Ok : Post; Err : text };
 type Result_2 = variant { Ok : UserProfile; Err : text };
 type Result_3 = variant { Ok; Err : text };
 type Result_4 = variant { Ok : Message; Err : text };
+type Result_5 = variant { Ok : nat64; Err : text };
+type Result_6 = variant { Ok : Transaction; Err : text };
+type Result_7 = variant { Ok : Wallet; Err : text };
 type Todo = record { id : nat64; "text" : text; completed : bool };
 type ToolCall = record { id : text; function : FunctionCall };
 type ToolCallArgument = record { value : text; name : text };
@@ -72,6 +75,36 @@ type TrendingTopic = record {
   hashtag : text;
   count : nat64;
   last_used : nat64;
+};
+
+// Wallet types
+type Wallet = record {
+  user_id : principal;
+  account_id : text;
+  balance : nat64;
+  created_at : nat64;
+};
+
+type Transaction = record {
+  id : nat64;
+  from : principal;
+  to : principal;
+  amount : nat64;
+  timestamp : nat64;
+  transaction_type : TransactionType;
+  status : TransactionStatus;
+};
+
+type TransactionType = variant {
+  Transfer;
+  Receive;
+  Tip;
+};
+
+type TransactionStatus = variant {
+  Pending;
+  Completed;
+  Failed;
 };
 type UserProfile = record {
   id : principal;
@@ -124,4 +157,13 @@ service : {
   unlike_post : (nat64) -> (Result_1);
   update_profile : (opt vec text, opt vec text) -> (Result_2);
   whoami : () -> (principal) query;
+  
+  // Wallet functions
+  create_wallet : () -> (Result_7);
+  get_wallet : () -> (Result_7) query;
+  get_balance : () -> (Result_5) query;
+  add_test_icp : (nat64) -> (Result_5);
+  transfer_tokens : (principal, nat64) -> (Result_6);
+  get_transaction_history : (nat64) -> (vec Transaction) query;
+  tip_user : (principal, nat64) -> (Result_6);
 }

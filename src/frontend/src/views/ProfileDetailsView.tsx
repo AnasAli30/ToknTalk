@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { backendService } from '../services/backendService';
+import { walletService } from '../services/walletService';
 import { Button } from '../components';
 import { useAuth } from '../context/AuthContext';
 import { principalToString } from '../utils/principal';
@@ -42,6 +43,7 @@ const UserGroupIcon = () => <span>👥</span>;
 const UsersIcon = () => <span>👤</span>;
 const MessageIcon = () => <span>💬</span>;
 const CloseIcon = () => <span>✕</span>;
+const DollarIcon = () => <span>$</span>;
 
 function isPlainObject(x: unknown): x is Record<string, unknown> {
   return (
@@ -84,6 +86,13 @@ const ProfileDetailsView = ({
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfile>>({});
+  
+  // Tip functionality
+  const [showTipModal, setShowTipModal] = useState(false);
+  const [tipAmount, setTipAmount] = useState('');
+  const [tipLoading, setTipLoading] = useState(false);
+  const [tipError, setTipError] = useState<string | null>(null);
+  const [tipSuccess, setTipSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProfile();
@@ -254,6 +263,51 @@ const ProfileDetailsView = ({
       setError('Failed to open chat');
     } finally {
       setLoadingMessage(false);
+    }
+  };
+
+  const handleTip = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authState.isAuthenticated) {
+      setTipError('Please log in to send tips');
+      return;
+    }
+    
+    if (!tipAmount.trim()) {
+      setTipError('Please enter a tip amount');
+      return;
+    }
+
+    const amount = parseFloat(tipAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setTipError('Please enter a valid amount');
+      return;
+    }
+
+    try {
+      setTipLoading(true);
+      setTipError(null);
+      
+      const request = {
+        userId: userId,
+        amount: Number(walletService.icpToE8s(amount))
+      };
+      
+      await walletService.tipUser(request);
+      
+      setTipSuccess(`Successfully tipped ${profile?.username} ${amount} ICP!`);
+      setTipAmount('');
+      
+      // Close modal after 2 seconds
+      setTimeout(() => {
+        setShowTipModal(false);
+        setTipSuccess(null);
+      }, 2000);
+    } catch (err: any) {
+      console.error('Error tipping user:', err);
+      setTipError('Tip failed: ' + (err.message || String(err)));
+    } finally {
+      setTipLoading(false);
     }
   };
 
@@ -438,6 +492,15 @@ const ProfileDetailsView = ({
                     <span className="ml-2">Message</span>
                   </Button>
                 )}
+
+                <Button
+                  onClick={() => setShowTipModal(true)}
+                  disabled={userId === authState.principal}
+                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                >
+                  <DollarIcon />
+                  <span className="ml-2">Tip</span>
+                </Button>
               </div>
             </div>
           </div>
@@ -660,6 +723,68 @@ const ProfileDetailsView = ({
           )}
         </div>
       </div>
+
+      {/* Tip Modal */}
+      {showTipModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-background-card rounded-xl p-6 w-full max-w-md border border-secondary-800">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-text">Tip {profile?.username}</h3>
+              <button
+                onClick={() => setShowTipModal(false)}
+                className="p-2 rounded-full hover:bg-secondary-800 text-text-secondary transition-colors"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            
+            <form onSubmit={handleTip} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-text">Amount (ICP)</label>
+                <input
+                  type="number"
+                  step="0.00000001"
+                  value={tipAmount}
+                  onChange={(e) => setTipAmount(e.target.value)}
+                  className="w-full p-3 border border-secondary-800 rounded-lg bg-background text-text"
+                  placeholder="0.00000001"
+                  disabled={tipLoading}
+                />
+              </div>
+              
+              {tipError && (
+                <div className="p-3 bg-red-900/20 border border-red-800 rounded-lg text-red-400 text-sm">
+                  {tipError}
+                </div>
+              )}
+              
+              {tipSuccess && (
+                <div className="p-3 bg-green-900/20 border border-green-800 rounded-lg text-green-400 text-sm">
+                  {tipSuccess}
+                </div>
+              )}
+              
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowTipModal(false)}
+                  className="flex-1 px-4 py-2 border border-secondary-800 rounded-lg hover:bg-secondary-800 transition-colors text-text"
+                  disabled={tipLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={tipLoading}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {tipLoading ? 'Sending...' : 'Send Tip'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

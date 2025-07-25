@@ -16,6 +16,7 @@
       "type": "pull",
       "id": "w36hm-eqaaa-aaaal-qr76a-cai"
     },
+
     "backend": {
       "dependencies": ["llm", "internet_identity"],
       "candid": "src/backend/backend.did",

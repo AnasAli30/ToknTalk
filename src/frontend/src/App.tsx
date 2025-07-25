@@ -29,6 +29,7 @@ import {
   NotificationsView, 
   ChatView 
 } from './views';
+import WalletView from './views/WalletView';
 import LandingPage from './views/LandingPage';
 import ProfileCheck from './components/ProfileCheck';
 
@@ -126,7 +127,7 @@ const NavItem = ({
 // Main App Content
 const AppContent = () => {
   const { authState, logout } = useAuth();
-  const [currentView, setCurrentView] = useState<'feed' | 'explore' | 'trending' | 'notifications' | 'chat' | 'profile'>('feed');
+  const [currentView, setCurrentView] = useState<'feed' | 'explore' | 'trending' | 'notifications' | 'chat' | 'profile' | 'wallet'>('feed');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [profileComplete, setProfileComplete] = useState(false);
@@ -157,6 +158,7 @@ const AppContent = () => {
     { icon: Hash, label: 'Trending', view: 'trending' as const },
     { icon: Bell, label: 'Notifications', view: 'notifications' as const, badge: notificationsCount },
     { icon: MessageCircle, label: 'Chat', view: 'chat' as const },
+    { icon: Wallet, label: 'Wallet', view: 'wallet' as const },
     { icon: User, label: 'Profile', view: 'profile' as const },
   ];
 
@@ -172,6 +174,8 @@ const AppContent = () => {
         return <NotificationsView />;
       case 'chat':
         return <ChatView />;
+      case 'wallet':
+        return <WalletView onNavigateToUserProfile={setSelectedUserId} />;
       case 'profile':
         return <ProfileView />;
       default:
