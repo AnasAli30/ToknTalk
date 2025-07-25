@@ -1,46 +1,326 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Base styles */
-@layer base {
-  * {
-    box-sizing: border-box;
-  }
+:root {
+  /* Light theme variables */
+  --background: 0 0% 100%;
+  --background-card: 0 0% 98%;
+  --background-light: 0 0% 96%;
+  --background-input: 0 0% 100%;
   
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
-    min-height: 100vh;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
+  --text: 0 0% 0%;
+  --text-secondary: 0 0% 45%;
+  --text-muted: 0 0% 65%;
   
-  html {
-    scroll-behavior: smooth;
-  }
+  /* Color Palette */
+  --primary: 0 0% 0%; /* Black */
+  --primary-foreground: 0 0% 100%;
+  --primary-50: 0 0% 95%;
+  --primary-100: 0 0% 90%;
+  --primary-200: 0 0% 80%;
+  --primary-300: 0 0% 70%;
+  --primary-400: 0 0% 60%;
+  --primary-500: 0 0% 0%;
+  --primary-600: 0 0% 40%;
+  --primary-700: 0 0% 30%;
+  --primary-800: 0 0% 20%;
+  --primary-900: 0 0% 10%;
   
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', 'Inter', sans-serif;
-    font-weight: 700;
-    line-height: 1.2;
+  --secondary: 0 0% 100%; /* White */
+  --secondary-foreground: 0 0% 0%;
+  --secondary-50: 0 0% 90%;
+  --secondary-100: 0 0% 80%;
+  --secondary-200: 0 0% 70%;
+  --secondary-300: 0 0% 60%;
+  --secondary-400: 0 0% 50%;
+  --secondary-500: 0 0% 40%;
+  --secondary-600: 0 0% 30%;
+  --secondary-700: 0 0% 20%;
+  --secondary-800: 0 0% 15%;
+  --secondary-900: 0 0% 10%;
+  
+  --accent: 220 100% 60%; /* #3A86FF - Blue */
+  --accent-foreground: 0 0% 100%;
+  --accent-50: 220 100% 95%;
+  --accent-100: 220 100% 90%;
+  --accent-200: 220 100% 80%;
+  --accent-300: 220 100% 70%;
+  --accent-400: 220 100% 65%;
+  --accent-500: 220 100% 60%;
+  --accent-600: 220 100% 50%;
+  --accent-700: 220 100% 40%;
+  --accent-800: 220 100% 30%;
+  --accent-900: 220 100% 20%;
+  
+  --success: 142 76% 36%;
+  --success-foreground: 0 0% 100%;
+  
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
+  
+  --error: 0 84% 60%;
+  --error-foreground: 0 0% 100%;
+  
+  --transition-duration: 0.3s;
+}
+
+.dark {
+  /* Dark theme variables */
+  --background: 0 0% 0%;
+  --background-card: 0 0% 8%;
+  --background-light: 0 0% 12%;
+  --background-input: 0 0% 16%;
+  
+  --text: 0 0% 100%;
+  --text-secondary: 0 0% 80%;
+  --text-muted: 0 0% 60%;
+  
+  /* Color Palette - Dark Mode */
+  --primary: 0 0% 100%; /* White */
+  --primary-foreground: 0 0% 0%;
+  --primary-50: 0 0% 90%;
+  --primary-100: 0 0% 80%;
+  --primary-200: 0 0% 70%;
+  --primary-300: 0 0% 60%;
+  --primary-400: 0 0% 50%;
+  --primary-500: 0 0% 100%;
+  --primary-600: 0 0% 70%;
+  --primary-700: 0 0% 80%;
+  --primary-800: 0 0% 85%;
+  --primary-900: 0 0% 90%;
+  
+  --secondary: 0 0% 0%; /* Black */
+  --secondary-foreground: 0 0% 100%;
+  --secondary-50: 0 0% 10%;
+  --secondary-100: 0 0% 15%;
+  --secondary-200: 0 0% 25%;
+  --secondary-300: 0 0% 35%;
+  --secondary-400: 0 0% 45%;
+  --secondary-500: 0 0% 55%;
+  --secondary-600: 0 0% 65%;
+  --secondary-700: 0 0% 75%;
+  --secondary-800: 0 0% 80%;
+  --secondary-900: 0 0% 85%;
+  
+  --accent: 220 100% 70%; /* Brighter Blue */
+  --accent-foreground: 0 0% 0%;
+  --accent-50: 220 100% 10%;
+  --accent-100: 220 100% 15%;
+  --accent-200: 220 100% 25%;
+  --accent-300: 220 100% 35%;
+  --accent-400: 220 100% 45%;
+  --accent-500: 220 100% 70%;
+  --accent-600: 220 100% 75%;
+  --accent-700: 220 100% 80%;
+  --accent-800: 220 100% 85%;
+  --accent-900: 220 100% 90%;
+  
+  --success: 142 76% 36%;
+  --success-foreground: 0 0% 100%;
+  
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
+  
+  --error: 0 84% 60%;
+  --error-foreground: 0 0% 100%;
+}
+
+* {
+  transition: background-color var(--transition-duration) ease, 
+              border-color var(--transition-duration) ease, 
+              color var(--transition-duration) ease;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--text));
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background-light));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--accent));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--accent-600));
+}
+
+/* Selection styles */
+::selection {
+  background-color: hsl(var(--accent-200));
+  color: hsl(var(--accent-900));
+}
+
+.dark ::selection {
+  background-color: hsl(var(--accent-800));
+  color: hsl(var(--accent-100));
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid hsl(var(--accent));
+  outline-offset: 2px;
+}
+
+/* Smooth transitions for theme switching */
+.theme-transition {
+  transition: all var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glass Effect */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtle glow effects */
+.glow {
+  box-shadow: 0 0 20px hsla(var(--accent), 0.3);
+}
+
+.glow-lg {
+  box-shadow: 0 0 40px hsla(var(--accent), 0.4);
+}
+
+/* Loading animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
   }
 }
 
-@layer components {
-  .animate-in {
-    animation: fadeIn 0.5s ease-out forwards;
+.shimmer {
+  background: linear-gradient(90deg, 
+    hsl(var(--background-light)) 25%, 
+    hsl(var(--accent-100)) 50%, 
+    hsl(var(--background-light)) 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Pulse animation */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px hsla(var(--accent), 0.3);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  50% {
+    box-shadow: 0 0 40px hsla(var(--accent), 0.6);
   }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Typography */
+.font-display {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Button styles */
+.modern-button {
+  position: relative;
+  background: linear-gradient(45deg, hsl(var(--primary)), hsl(var(--accent)));
+  border: none;
+  color: hsl(var(--primary-foreground));
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.modern-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.modern-button:hover::before {
+  left: 100%;
+}
+
+.modern-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px hsla(var(--accent), 0.3);
+}
+
+/* Card styles */
+.modern-card {
+  background: hsl(var(--background-card));
+  border: 1px solid hsla(var(--accent), 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.modern-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
+}
+
+.modern-card:hover {
+  border-color: hsla(var(--accent), 0.3);
+  box-shadow: 0 8px 32px hsla(var(--accent), 0.1);
+  transform: translateY(-2px);
 }

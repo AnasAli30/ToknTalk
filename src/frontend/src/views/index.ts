@@ -11,3 +11,4 @@ export { default as ProfileDetailsView } from "./ProfileDetailsView";
 export { default as TrendingView } from "./TrendingView";
 export { default as NotificationsView } from "./NotificationsView";
 export { default as ChatView } from "./ChatView";
+export { default as LandingPage } from "./LandingPage";

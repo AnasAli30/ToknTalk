@@ -1,225 +1,264 @@
-import { useState } from "react";
-import { Loader, ErrorDisplay } from "./components";
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  GreetingView, 
-  CounterView, 
-  LlmPromptView, 
-  TodoListView, 
+  Home, 
+  Users, 
+  Hash, 
+  Bell, 
+  MessageCircle, 
+  User, 
+  RefreshCw, 
+  Share2, 
+  LogOut,
+  Sun,
+  Moon,
+  Sparkles,
+  Wallet,
+  Bot,
+  Cpu
+} from 'lucide-react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { 
   LoginView, 
-  ProfileView,
-  FeedView,
-  ExploreView,
-  ProfileDetailsView,
-  TrendingView,
-  NotificationsView,
-  ChatView
-} from "./views";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+  ProfileView, 
+  FeedView, 
+  ExploreView, 
+  ProfileDetailsView, 
+  TrendingView, 
+  NotificationsView, 
+  ChatView 
+} from './views';
+import LandingPage from './views/LandingPage';
 
-// Import icons
-import { 
-  HomeIcon, 
-  UserGroupIcon, 
-  HashtagIcon, 
-  BellIcon, 
-  ChatBubbleLeftRightIcon, 
-  UserIcon,
-  ArrowPathIcon,
-  ShareIcon,
-  ArrowRightOnRectangleIcon
-} from "@heroicons/react/24/outline";
-
-// ToknTalk logo component
+// ToknTalk Logo Component
 const ToknTalkLogo = () => (
-  <div className="flex items-center gap-2">
-    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">T</div>
-    <span className="text-xl font-display font-bold bg-gradient-to-r from-primary to-primary-400 bg-clip-text text-transparent">ToknTalk</span>
-  </div>
+  <motion.div 
+    className="flex items-center space-x-3"
+    whileHover={{ scale: 1.05 }}
+  >
+    <div className="w-10 h-10 bg-gradient rounded-xl flex items-center justify-center glow">
+      <Sparkles className="w-6 h-6 text-white" />
+    </div>
+    <span className="text-xl font-bold gradient-text">
+      ToknTalk
+    </span>
+  </motion.div>
 );
 
-type Tab = 'home' | 'explore' | 'trending' | 'notifications' | 'profile' | 'chat' | 'demo';
+// Theme Toggle Component
+const ThemeToggle = () => {
+  const { theme, toggleTheme } = useTheme();
+  
+  return (
+    <motion.button
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
+      onClick={toggleTheme}
+      className="p-3 rounded-xl modern-card border border-accent/20 hover:border-accent/40 transition-all duration-300"
+    >
+      <AnimatePresence mode="wait">
+        {theme === 'dark' ? (
+          <motion.div
+            key="sun"
+            initial={{ rotate: -90, opacity: 0 }}
+            animate={{ rotate: 0, opacity: 1 }}
+            exit={{ rotate: 90, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Sun className="w-5 h-5 text-warning" />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="moon"
+            initial={{ rotate: 90, opacity: 0 }}
+            animate={{ rotate: 0, opacity: 1 }}
+            exit={{ rotate: -90, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Moon className="w-5 h-5 text-accent" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  );
+};
 
-function AppContent() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | undefined>();
-  const { authState, isLoading, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('home');
+// Navigation Item Component
+const NavItem = ({ 
+  icon: Icon, 
+  label, 
+  isActive, 
+  onClick, 
+  badge 
+}: {
+  icon: any;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+  badge?: number;
+}) => (
+  <motion.button
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick}
+    className={`relative flex items-center space-x-3 w-full p-4 rounded-xl transition-all duration-300 ${
+      isActive 
+        ? 'bg-gradient text-white glow' 
+        : 'text-text-secondary hover:text-text hover:modern-card border border-transparent hover:border-accent/20'
+    }`}
+  >
+    <Icon className="w-5 h-5" />
+    <span className="font-medium">{label}</span>
+    {badge && badge > 0 && (
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        className="absolute -top-1 -right-1 w-5 h-5 bg-error text-error-foreground rounded-full text-xs flex items-center justify-center font-bold"
+      >
+        {badge > 99 ? '99+' : badge}
+      </motion.div>
+    )}
+  </motion.button>
+);
+
+// Main App Content
+const AppContent = () => {
+  const { authState, logout } = useAuth();
+  const [currentView, setCurrentView] = useState<'feed' | 'explore' | 'trending' | 'notifications' | 'chat' | 'profile'>('feed');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-
-  const handleError = (errorMessage: string) => {
-    setError(errorMessage);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader />
-      </div>
-    );
-  }
-
-  const handleCloseProfile = () => {
-    setSelectedUserId(null);
-  };
+  const [notificationsCount, setNotificationsCount] = useState(0);
 
   const handleNavigateToChat = () => {
-    setSelectedUserId(null);
-    setActiveTab('chat');
+    setCurrentView('chat');
   };
 
-  const navItems = [
-    { id: 'home', label: 'Home', icon: <HomeIcon className="w-6 h-6" /> },
-    { id: 'explore', label: 'Explore', icon: <UserGroupIcon className="w-6 h-6" /> },
-    { id: 'trending', label: 'Trending', icon: <HashtagIcon className="w-6 h-6" /> },
-    { id: 'notifications', label: 'Notifications', icon: <BellIcon className="w-6 h-6" /> },
-    { id: 'chat', label: 'Messages', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" /> },
-    { id: 'profile', label: 'Profile', icon: <UserIcon className="w-6 h-6" /> },
+  const handleLogout = () => {
+    logout();
+  };
+
+  // If not authenticated, show landing page
+  if (!authState.isAuthenticated) {
+    return <LandingPage />;
+  }
+
+  const navigationItems = [
+    { icon: Home, label: 'Home', view: 'feed' as const },
+    { icon: Users, label: 'Explore', view: 'explore' as const },
+    { icon: Hash, label: 'Trending', view: 'trending' as const },
+    { icon: Bell, label: 'Notifications', view: 'notifications' as const, badge: notificationsCount },
+    { icon: MessageCircle, label: 'Chat', view: 'chat' as const },
+    { icon: User, label: 'Profile', view: 'profile' as const },
   ];
 
-  return (
-    <div className="flex min-h-screen flex-col bg-background text-text">
-      {/* Header */}
-      <header className="bg-background-light border-b border-secondary-800 p-4 shadow-md sticky top-0 z-10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <ToknTalkLogo />
-          
-          {authState.isAuthenticated && (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-text-secondary hidden md:block">
-                {authState.principal?.slice(0, 8)}...
-              </span>
-              <button 
-                onClick={logout}
-                className="p-2 rounded-full hover:bg-secondary-800 text-text-secondary"
-                title="Logout"
-              >
-                <ArrowRightOnRectangleIcon className="w-5 h-5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
-      
-      <div className="mx-auto flex w-full max-w-6xl flex-1 gap-4 p-4">
-        {/* Sidebar Navigation */}
-        {authState.isAuthenticated && (
-          <nav className="hidden w-64 flex-shrink-0 md:block">
-            <div className="rounded-xl bg-background-card p-4 shadow-md sticky top-20">
-              <ul className="space-y-1">
-                {navItems.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      onClick={() => setActiveTab(item.id as Tab)}
-                      className={`w-full rounded-lg p-3 text-left flex items-center gap-3 transition-colors ${
-                        activeTab === item.id 
-                          ? 'bg-primary text-white font-medium' 
-                          : 'text-text-secondary hover:bg-background-light'
-                      }`}
-                    >
-                      {item.icon}
-                      {item.label}
-                    </button>
-                  </li>
-                ))}
-                
-                <li className="pt-4">
-                  <button
-                    onClick={() => setActiveTab('demo')}
-                    className={`w-full rounded-lg p-3 text-left flex items-center gap-3 transition-colors ${
-                      activeTab === 'demo' 
-                        ? 'bg-primary text-white font-medium' 
-                        : 'text-text-secondary hover:bg-background-light'
-                    }`}
-                  >
-                    <ArrowPathIcon className="w-6 h-6" />
-                    Demo Components
-                  </button>
-                </li>
-              </ul>
-              
-              {/* Create Post Button */}
-              <div className="mt-6">
-                <button 
-                  className="w-full bg-primary hover:bg-primary-600 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-glow"
-                  onClick={() => setActiveTab('home')}
-                >
-                  <ShareIcon className="w-5 h-5" />
-                  Create Post
-                </button>
-              </div>
-            </div>
-          </nav>
-        )}
-        
-        {/* Mobile Navigation (Bottom) */}
-        {authState.isAuthenticated && (
-          <div className="fixed bottom-0 left-0 right-0 bg-background-light border-t border-secondary-800 p-2 md:hidden z-10">
-            <div className="flex justify-around">
-              {navItems.slice(0, 5).map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id as Tab)}
-                  className={`p-3 rounded-lg ${
-                    activeTab === item.id 
-                      ? 'text-primary' 
-                      : 'text-text-secondary'
-                  }`}
-                >
-                  {item.icon}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* Main Content */}
-        <main className="flex-1 pb-20 md:pb-0">
-          {!authState.isAuthenticated ? (
-            <div className="bg-background-card rounded-xl overflow-hidden shadow-md">
-              <LoginView />
-            </div>
-          ) : selectedUserId ? (
-            <div className="bg-background-card rounded-xl overflow-hidden shadow-md">
-              <ProfileDetailsView 
-                userId={selectedUserId} 
-                onClose={handleCloseProfile} 
-                onNavigateToChat={handleNavigateToChat}
-              />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {activeTab === 'home' && <FeedView />}
-              {activeTab === 'explore' && <ExploreView onViewProfile={setSelectedUserId} />}
-              {activeTab === 'trending' && <TrendingView />}
-              {activeTab === 'notifications' && <NotificationsView />}
-              {activeTab === 'chat' && <ChatView />}
-              {activeTab === 'profile' && <ProfileView />}
-              
-              {activeTab === 'demo' && (
-                <>
-                  <GreetingView onError={handleError} setLoading={setLoading} />
-                  <CounterView onError={handleError} setLoading={setLoading} />
-                  <LlmPromptView onError={handleError} setLoading={setLoading} />
-                  <TodoListView />
-                </>
-              )}
-            </div>
-          )}
+  const renderView = () => {
+    switch (currentView) {
+      case 'feed':
+        return <FeedView />;
+      case 'explore':
+        return <ExploreView onViewProfile={setSelectedUserId} />;
+      case 'trending':
+        return <TrendingView />;
+      case 'notifications':
+        return <NotificationsView />;
+      case 'chat':
+        return <ChatView />;
+      case 'profile':
+        return <ProfileView />;
+      default:
+        return <FeedView />;
+    }
+  };
 
-          {loading && !error && <Loader />}
-          {!!error && <ErrorDisplay message={error} />}
-        </main>
-      </div>
+  return (
+    <div className="min-h-screen bg-background text-text flex">
+      {/* Sidebar Navigation */}
+      <motion.aside
+        initial={{ x: -300 }}
+        animate={{ x: 0 }}
+        className="w-80 modern-card border-r border-accent/20 p-6 flex flex-col"
+      >
+        {/* Logo */}
+        <div className="mb-8">
+          <ToknTalkLogo />
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 space-y-3">
+          {navigationItems.map((item) => (
+            <NavItem
+              key={item.label}
+              icon={item.icon}
+              label={item.label}
+              isActive={currentView === item.view}
+              onClick={() => setCurrentView(item.view)}
+              badge={item.badge}
+            />
+          ))}
+        </nav>
+
+        {/* Bottom Actions */}
+        <div className="space-y-3 pt-6 border-t border-accent/20">
+          <ThemeToggle />
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleLogout}
+            className="flex items-center space-x-3 w-full p-4 rounded-xl text-error hover:bg-error/10 transition-all duration-300 modern-card border border-error/20 hover:border-error/40"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium">Logout</span>
+          </motion.button>
+        </div>
+      </motion.aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentView}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="h-full overflow-y-auto"
+          >
+            {renderView()}
+          </motion.div>
+        </AnimatePresence>
+      </main>
+
+      {/* Profile Details Modal */}
+      <AnimatePresence>
+        {selectedUserId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50"
+          >
+            <ProfileDetailsView
+              userId={selectedUserId}
+              onClose={() => setSelectedUserId(null)}
+              onNavigateToChat={handleNavigateToChat}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
-}
+};
 
-function App() {
+// Main App Component
+const App = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
-}
+};
 
 export default App;
