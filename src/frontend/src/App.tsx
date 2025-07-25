@@ -32,6 +32,7 @@ import {
 import WalletView from './views/WalletView';
 import LandingPage from './views/LandingPage';
 import ProfileCheck from './components/ProfileCheck';
+import { TopNavbar } from './components';
 
 // ToknTalk Logo Component
 const ToknTalkLogo = () => (
@@ -129,17 +130,36 @@ const AppContent = () => {
   const { authState, logout } = useAuth();
   const [currentView, setCurrentView] = useState<'feed' | 'explore' | 'trending' | 'notifications' | 'chat' | 'profile' | 'wallet'>('feed');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [chatTargetUserId, setChatTargetUserId] = useState<string | null>(null);
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [profileComplete, setProfileComplete] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const handleNavigateToChat = () => {
-    setCurrentView('chat');
-  };
+
 
   const handleLogout = () => {
     // Clear profile ID from localStorage on logout
     localStorage.removeItem('tokntalk_profile_id');
     logout();
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    // Navigate to explore for search results
+    setCurrentView('explore');
+  };
+
+  const handleNavigateToNotifications = () => {
+    setCurrentView('notifications');
+  };
+
+  const handleNavigateToChat = () => {
+    // Store the current selected user as the chat target
+    if (selectedUserId) {
+      setChatTargetUserId(selectedUserId);
+    }
+    setCurrentView('chat');
+    setSelectedUserId(null); // Close the profile modal
   };
 
   // If not authenticated, show landing page
@@ -165,21 +185,21 @@ const AppContent = () => {
   const renderView = () => {
     switch (currentView) {
       case 'feed':
-        return <FeedView />;
+        return <FeedView searchQuery={searchQuery} />;
       case 'explore':
-        return <ExploreView onViewProfile={setSelectedUserId} />;
+        return <ExploreView onViewProfile={setSelectedUserId} searchQuery={searchQuery} />;
       case 'trending':
         return <TrendingView />;
       case 'notifications':
         return <NotificationsView />;
       case 'chat':
-        return <ChatView />;
+        return <ChatView initialUserId={chatTargetUserId || undefined} />;
       case 'wallet':
         return <WalletView onNavigateToUserProfile={setSelectedUserId} />;
       case 'profile':
         return <ProfileView />;
       default:
-        return <FeedView />;
+        return <FeedView searchQuery={searchQuery} />;
     }
   };
 
@@ -192,9 +212,9 @@ const AppContent = () => {
         className="w-80 modern-card border-r border-accent/20 p-6 flex flex-col"
       >
         {/* Logo */}
-        <div className="mb-8">
+          <div className="mb-8">
           <ToknTalkLogo />
-        </div>
+          </div>
 
         {/* Navigation */}
         <nav className="flex-1 space-y-3">
@@ -204,7 +224,13 @@ const AppContent = () => {
               icon={item.icon}
               label={item.label}
               isActive={currentView === item.view}
-              onClick={() => setCurrentView(item.view)}
+              onClick={() => {
+                setCurrentView(item.view);
+                // Clear chat target when navigating away from chat
+                if (item.view !== 'chat') {
+                  setChatTargetUserId(null);
+                }
+              }}
               badge={item.badge}
             />
           ))}
@@ -227,19 +253,31 @@ const AppContent = () => {
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentView}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="h-full overflow-y-auto"
-          >
-            {renderView()}
-          </motion.div>
-        </AnimatePresence>
+      <main className="flex-1 overflow-hidden flex flex-col">
+        {/* Top Navbar */}
+        <TopNavbar
+          onSearch={handleSearch}
+          onNavigateToNotifications={handleNavigateToNotifications}
+          onNavigateToChat={handleNavigateToChat}
+          notificationsCount={notificationsCount}
+          currentView={currentView}
+        />
+        
+        {/* Content Area */}
+        <div className="flex-1 overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentView}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="h-full overflow-y-auto"
+            >
+              {renderView()}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </main>
 
       {/* Profile Details Modal */}
@@ -259,7 +297,7 @@ const AppContent = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
   );
 };
 

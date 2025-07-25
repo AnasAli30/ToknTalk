@@ -1,17 +1,26 @@
-import { useEffect, useState, ChangeEvent, FormEvent } from 'react';
+import { useEffect, useState, ChangeEvent, FormEvent, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Heart, 
+  MessageCircle, 
+  Repeat2, 
+  Send, 
+  MoreHorizontal,
+  Home,
+  Sparkles,
+  Hash,
+  User,
+  Calendar,
+  Image,
+  Smile,
+  X
+} from 'lucide-react';
 import { backendService } from '../services/backendService';
 import { Button } from '../components';
+import PostViewer from '../components/PostViewer';
 import { useAuth } from '../context/AuthContext';
 import { principalToString } from '../utils/principal';
 import type { Post as BackendPost } from '../../../declarations/backend/backend.did';
-
-// Simple version without heroicons for now
-const HeartIcon = () => <span>❤️</span>;
-const HeartIconSolid = () => <span>❤️</span>;
-const ChatBubbleLeftIcon = () => <span>💬</span>;
-const ArrowPathRoundedSquareIcon = () => <span>🔄</span>;
-const PaperAirplaneIcon = () => <span>📤</span>;
-const EllipsisHorizontalIcon = () => <span>⋯</span>;
 
 interface Post extends Omit<BackendPost, 'author'> {
   author: string;
@@ -50,7 +59,11 @@ const getOriginalAuthor = (post: Post) => {
   return null;
 };
 
-const FeedView = () => {
+interface FeedViewProps {
+  searchQuery?: string;
+}
+
+const FeedView: React.FC<FeedViewProps> = ({ searchQuery = '' }) => {
   const { authState } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState('');
@@ -63,10 +76,29 @@ const FeedView = () => {
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [resharedPosts, setResharedPosts] = useState<Set<string>>(new Set());
   const [showPersonalized, setShowPersonalized] = useState(true);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchPosts();
   }, [authState.isAuthenticated]);
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showEmojiPicker) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   const fetchPosts = async () => {
     try {
@@ -99,26 +131,19 @@ const FeedView = () => {
       
       // Check which posts the user has liked
       if (authState.isAuthenticated) {
-        const likedPostIds = new Set<string>();
-        const resharedPostIds = new Set<string>();
+        const likedSet = new Set<string>();
+        const resharedSet = new Set<string>();
         
-        for (const post of formattedPosts) {
-          // Check likes
-          if (post.likes.some(p => principalToString(p) === authState.principal)) {
-            likedPostIds.add(post.id.toString());
+        // For now, we'll check based on the likes array
+        // In a real implementation, you'd have a separate endpoint to get user's liked posts
+        formattedPosts.forEach(post => {
+          if (post.likes.some(like => principalToString(like) === authState.principal)) {
+            likedSet.add(post.id.toString());
           }
-          
-          // Check reshares - this is a simplification, will need to be updated
-          if (isReshare(post)) {
-            const originalAuthor = getOriginalAuthor(post);
-            if (originalAuthor === authState.principal) {
-              resharedPostIds.add(post.id.toString());
-            }
-          }
-        }
+        });
         
-        setLikedPosts(likedPostIds);
-        setResharedPosts(resharedPostIds);
+        setLikedPosts(likedSet);
+        setResharedPosts(resharedSet);
       }
     } catch (err) {
       console.error('Error fetching posts:', err);
@@ -130,50 +155,53 @@ const FeedView = () => {
 
   const fetchUserProfiles = async (userIds: string[]) => {
     const profiles: Record<string, UserProfile> = {};
-    
     for (const userId of userIds) {
       try {
-        const profileResult = await backendService.getUserProfile(userId);
-        if (profileResult && 'Ok' in profileResult) {
-          const profile = profileResult.Ok;
-          profiles[userId] = {
-            id: principalToString(profile.id),
-            username: profile.username,
-            bio: profile.bio,
-            avatar_url: profile.avatar_url
-          };
+        const result = await backendService.getUserProfile(userId);
+        if ('Ok' in result) {
+          const profile = result.Ok;
+          profiles[userId] = { ...profile, id: principalToString(profile.id) };
         }
       } catch (err) {
-        console.error(`Failed to fetch profile for ${userId}:`, err);
+        // ignore
       }
     }
-    
-    setUserProfiles(prev => ({...prev, ...profiles}));
+    setUserProfiles(profiles);
   };
 
   const handleCreatePost = async (e: FormEvent) => {
     e.preventDefault();
-    
-    if (!authState.isAuthenticated) {
-      setError('Please log in to create posts');
-      return;
-    }
-    
-    if (!newPost.trim()) {
-      return;
-    }
+    if ((!newPost.trim() && !selectedImage) || !authState.isAuthenticated) return;
     
     try {
       setPosting(true);
-      setError(null);
       
-      const result = await backendService.createPost(newPost);
+      // Create post content with image data if available
+      let postContent = newPost;
+      if (selectedImage && imagePreview) {
+        // Store image data temporarily (in a real app, this would be uploaded to backend)
+        const imageData = {
+          dataUrl: imagePreview,
+          fileName: selectedImage.name,
+          timestamp: Date.now()
+        };
+        postContent += `\n[IMAGE:${JSON.stringify(imageData)}]`;
+      }
       
-      if (result && 'Ok' in result) {
+      const result = await backendService.createPost(postContent);
+      
+      if (isPlainObject(result) && 'Ok' in result) {
         setNewPost('');
-        fetchPosts();
-      } else if (result && 'Err' in result) {
-        setError(result.Err);
+        setSelectedImage(null);
+        setImagePreview(null);
+        setShowEmojiPicker(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        await fetchPosts(); // Refresh posts
+      } else if (isPlainObject(result) && 'Err' in result) {
+        const errorMsg = (result as any).Err;
+        setError(typeof errorMsg === 'string' ? errorMsg : 'Failed to create post');
       }
     } catch (err) {
       console.error('Error creating post:', err);
@@ -190,9 +218,7 @@ const FeedView = () => {
     }
     
     try {
-      const isLiked = likedPosts.has(postId);
-      
-      if (isLiked) {
+      if (likedPosts.has(postId)) {
         await backendService.unlikePost(BigInt(postId));
         setLikedPosts(prev => {
           const newSet = new Set(prev);
@@ -203,9 +229,7 @@ const FeedView = () => {
         await backendService.likePost(BigInt(postId));
         setLikedPosts(prev => new Set([...prev, postId]));
       }
-      
-      // Refresh posts to get updated like counts
-      fetchPosts();
+      await fetchPosts(); // Refresh posts to get updated like counts
     } catch (err) {
       console.error('Error liking/unliking post:', err);
       setError('Failed to like/unlike post');
@@ -213,24 +237,17 @@ const FeedView = () => {
   };
 
   const handleAddComment = async (postId: string) => {
-    if (!authState.isAuthenticated) {
-      setError('Please log in to comment');
-      return;
-    }
-    
-    if (!commentText.trim()) {
-      return;
-    }
+    if (!commentText.trim() || !authState.isAuthenticated) return;
     
     try {
       const result = await backendService.addComment(BigInt(postId), commentText);
-      
-      if (result && 'Ok' in result) {
+      if (isPlainObject(result) && 'Ok' in result) {
         setCommentText('');
         setCommentingPostId(null);
-        fetchPosts();
-      } else if (result && 'Err' in result) {
-        setError(result.Err);
+        await fetchPosts(); // Refresh posts to get updated comment counts
+      } else if (isPlainObject(result) && 'Err' in result) {
+        const errorMsg = (result as any).Err;
+        setError(typeof errorMsg === 'string' ? errorMsg : 'Failed to add comment');
       }
     } catch (err) {
       console.error('Error adding comment:', err);
@@ -245,16 +262,9 @@ const FeedView = () => {
     }
     
     try {
-      const result = await backendService.resharePost(BigInt(postId));
-      
-      if (result && 'Ok' in result) {
-        // Add to reshared posts set
-        setResharedPosts(prev => new Set([...prev, postId]));
-        // Refresh posts to get updated reshare counts
-        fetchPosts();
-      } else if (result && 'Err' in result) {
-        setError(result.Err);
-      }
+      await backendService.resharePost(BigInt(postId));
+      setResharedPosts(prev => new Set([...prev, postId]));
+      await fetchPosts(); // Refresh posts to get updated reshare counts
     } catch (err) {
       console.error('Error resharing post:', err);
       setError('Failed to reshare post');
@@ -269,7 +279,6 @@ const FeedView = () => {
     if (userProfiles[userId]?.avatar_url && userProfiles[userId].avatar_url.length > 0) {
       return userProfiles[userId].avatar_url[0];
     }
-    // Return a default avatar
     return 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
   };
 
@@ -297,14 +306,88 @@ const FeedView = () => {
     });
   };
 
+  const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        setError('Image size must be less than 2MB');
+        return;
+      }
+      
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file');
+        return;
+      }
+      
+      setSelectedImage(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const addEmoji = (emoji: string) => {
+    setNewPost(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const emojis = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+    '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+    '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
+    '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+    '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬',
+    '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗',
+    '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😯', '😦', '😧',
+    '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢',
+    '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '💩', '👻', '💀',
+    '☠️', '👽', '👾', '🤖', '😺', '😸', '😹', '😻', '😼', '😽'
+  ];
+
+  const extractImageFromContent = (content: string) => {
+    const imageMatch = content.match(/\[IMAGE:(.*?)\]/);
+    if (imageMatch) {
+      try {
+        return JSON.parse(imageMatch[1]);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const getTextContent = (content: string) => {
+    return content.replace(/\[IMAGE:.*?\]/, '').trim();
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="max-w-2xl mx-auto p-2 space-y-2">
+     
+
       {/* Create Post Card */}
       {authState.isAuthenticated && (
-        <div className="bg-background-card rounded-xl p-6 shadow-md">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-card rounded-xl p-6 border border-border"
+        >
           <form onSubmit={handleCreatePost} className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-secondary-800 overflow-hidden flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient overflow-hidden flex-shrink-0">
                 <img 
                   src={getAvatarUrl(authState.principal || '')} 
                   alt="Your avatar" 
@@ -316,30 +399,105 @@ const FeedView = () => {
                   value={newPost}
                   onChange={(e) => setNewPost(e.target.value)}
                   placeholder="What's happening?"
-                  className="w-full bg-background-input rounded-lg border border-secondary-700 p-3 text-text resize-none focus:border-primary focus:outline-none min-h-[100px]"
+                  className="w-full bg-background rounded-lg border border-border p-3 text-text-primary resize-none focus:border-accent focus:outline-none min-h-[100px]"
                 />
+                
+                {/* Image Preview */}
+                {imagePreview && (
+                  <div className="mt-3 relative">
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="max-w-full max-h-64 rounded-lg object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
+            
+            {/* Action Buttons */}
             <div className="flex justify-between items-center">
-              <div className="text-text-secondary text-sm">
-                {/* Hashtag suggestions could go here */}
+              <div className="flex items-center gap-2">
+                {/* Image Upload Button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 text-accent hover:bg-accent/10 rounded-lg transition-colors"
+                  title="Add photo"
+                >
+                  <Image className="w-5 h-5" />
+                </button>
+                
+                {/* Emoji Picker Button */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="p-2 text-accent hover:bg-accent/10 rounded-lg transition-colors"
+                    title="Add emoji"
+                  >
+                    <Smile className="w-5 h-5" />
+                  </button>
+                  
+                  {/* Emoji Picker */}
+                  <AnimatePresence>
+                    {showEmojiPicker && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                        className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg z-10 w-80"
+                      >
+                        <div className="grid grid-cols-12 gap-1 max-h-48 overflow-y-auto">
+                          {emojis.map((emoji, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => addEmoji(emoji)}
+                              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-lg transition-colors"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
               </div>
+              
               <Button 
                 type="submit"
-                disabled={posting || !newPost.trim()}
-                className="bg-primary hover:bg-primary-600 text-white px-6 py-2 rounded-lg transition-colors"
+                disabled={posting || (!newPost.trim() && !selectedImage)}
+                className="bg-accent hover:bg-accent/90 text-white px-6 py-2 rounded-lg transition-colors"
               >
                 {posting ? 'Posting...' : 'Post'}
               </Button>
             </div>
           </form>
-        </div>
+        </motion.div>
       )}
 
       {/* Feed Toggle */}
       {authState.isAuthenticated && (
         <div className="flex justify-center">
-          <div className="bg-background-card rounded-full p-1 inline-flex">
+          <div className="bg-card rounded-full p-1 inline-flex border border-border">
             <button 
               onClick={() => {
                 setShowPersonalized(true);
@@ -347,8 +505,8 @@ const FeedView = () => {
               }}
               className={`px-4 py-2 rounded-full text-sm transition-colors ${
                 showPersonalized 
-                  ? 'bg-primary text-white' 
-                  : 'text-text-secondary hover:text-text'
+                  ? 'bg-accent text-white' 
+                  : 'text-text-secondary hover:text-text-primary'
               }`}
             >
               For You
@@ -360,8 +518,8 @@ const FeedView = () => {
               }}
               className={`px-4 py-2 rounded-full text-sm transition-colors ${
                 !showPersonalized 
-                  ? 'bg-primary text-white' 
-                  : 'text-text-secondary hover:text-text'
+                  ? 'bg-accent text-white' 
+                  : 'text-text-secondary hover:text-text-primary'
               }`}
             >
               Latest
@@ -371,29 +529,46 @@ const FeedView = () => {
       )}
       
       {/* Error Display */}
-      {error && (
-        <div className="bg-error/20 text-error rounded-lg p-4">
-          {error}
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4"
+          >
+            {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Posts List */}
       <div className="space-y-6">
         {loading && posts.length === 0 ? (
-          <div className="bg-background-card rounded-xl p-6 text-center text-text-secondary">
-            Loading posts...
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+            <span className="ml-3 text-text-secondary">Loading posts...</span>
           </div>
         ) : posts.length === 0 ? (
-          <div className="bg-background-card rounded-xl p-6 text-center text-text-secondary">
-            No posts yet
+          <div className="text-center py-12">
+            <Sparkles className="w-16 h-16 mx-auto mb-4 text-text-secondary opacity-50" />
+            <p className="text-text-secondary">No posts yet</p>
+            <p className="text-sm text-text-muted mt-2">Start posting to see content here!</p>
           </div>
         ) : (
-          posts.map((post) => (
-            <div key={post.id.toString()} className="bg-background-card rounded-xl shadow-md overflow-hidden">
+          posts.map((post, index) => (
+            <motion.div
+              key={post.id.toString()}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-card rounded-xl border border-border overflow-hidden hover:border-accent/20 transition-all duration-300 cursor-pointer"
+              onClick={() => setSelectedPost(post)}
+            >
               {/* Reshare Header */}
               {isReshare(post) && (
-                <div className="bg-background-light px-6 py-2 text-text-secondary text-sm flex items-center gap-2">
-                  <ArrowPathRoundedSquareIcon />
+                <div className="bg-background px-6 py-2 text-text-secondary text-sm flex items-center gap-2 border-b border-border">
+                  <Repeat2 className="w-4 h-4" />
                   <span>{getUsernameForId(post.author)} reshared</span>
                 </div>
               )}
@@ -401,28 +576,43 @@ const FeedView = () => {
               {/* Post Content */}
               <div className="p-6">
                 {/* Author Info */}
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-secondary-800 overflow-hidden">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient overflow-hidden">
                     <img 
                       src={getAvatarUrl(isReshare(post) ? getOriginalAuthor(post) || post.author : post.author)} 
                       alt={getUsernameForId(post.author)} 
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div>
-                    <div className="font-medium">
+                  <div className="flex-1">
+                    <div className="font-semibold text-text-primary">
                       {getUsernameForId(isReshare(post) ? getOriginalAuthor(post) || post.author : post.author)}
                     </div>
-                    <div className="text-text-secondary text-sm">
-                      {formatDate(post.created_at)}
+                    <div className="flex items-center gap-2 text-text-secondary text-sm">
+                      <Calendar className="w-4 h-4" />
+                      <span>{formatDate(post.created_at)}</span>
                     </div>
                   </div>
                 </div>
                 
                 {/* Post Text */}
-                <div className="text-text mb-4 whitespace-pre-wrap">
-                  {post.content}
+                <div className="text-text-primary mb-4 whitespace-pre-wrap leading-relaxed">
+                  {getTextContent(post.content)}
                 </div>
+                
+                {/* Post Image */}
+                {(() => {
+                  const imageData = extractImageFromContent(post.content);
+                  return imageData ? (
+                    <div className="mb-4">
+                      <img 
+                        src={imageData.dataUrl} 
+                        alt={imageData.fileName || 'Post image'} 
+                        className="max-w-full max-h-96 rounded-lg object-cover"
+                      />
+                    </div>
+                  ) : null;
+                })()}
                 
                 {/* Hashtags */}
                 {post.hashtags.length > 0 && (
@@ -430,103 +620,86 @@ const FeedView = () => {
                     {post.hashtags.map((tag, index) => (
                       <span 
                         key={index} 
-                        className="text-primary text-sm hover:underline cursor-pointer"
+                        className="flex items-center gap-1 text-accent text-sm hover:underline cursor-pointer"
                       >
-                        #{tag}
+                        <Hash className="w-3 h-3" />
+                        {tag}
                       </span>
                     ))}
                   </div>
                 )}
                 
-                {/* Post Stats */}
-                <div className="flex items-center gap-6 text-text-secondary text-sm py-2 border-t border-secondary-800">
-                  <div className="flex items-center gap-1">
-                    <span>{post.likes.length}</span>
-                    <span>likes</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>{post.comments.length}</span>
-                    <span>comments</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>{post.reshare_count}</span>
-                    <span>reshares</span>
-                  </div>
-                </div>
-                
                 {/* Post Actions */}
-                <div className="flex justify-between mt-3 border-t border-secondary-800 pt-3">
+                <div className="flex justify-between pt-3 border-t border-border">
                   <button 
-                    onClick={() => handleLikePost(post.id.toString())}
-                    className={`flex items-center gap-2 p-2 rounded-lg ${
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLikePost(post.id.toString());
+                    }}
+                    className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
                       likedPosts.has(post.id.toString()) 
-                        ? 'text-primary' 
-                        : 'text-text-secondary hover:text-text'
+                        ? 'text-red-500' 
+                        : 'text-text-secondary hover:text-text-primary'
                     }`}
                   >
-                    {likedPosts.has(post.id.toString()) 
-                      ? <HeartIconSolid /> 
-                      : <HeartIcon />
-                    }
-                    <span>Like</span>
+                    <Heart className={`w-5 h-5 ${likedPosts.has(post.id.toString()) ? 'fill-current' : ''}`} />
+                    <span>{post.likes.length > 0 ? post.likes.length : ''}</span>
                   </button>
                   
                   <button 
-                    onClick={() => {
-                      const id = post.id;
-                      if (typeof id === 'string' || typeof id === 'number' || typeof id === 'bigint') {
-                        setCommentingPostId(id.toString());
-                      } else {
-                        setCommentingPostId(null);
-                      }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPost(post);
                     }}
-                    className="flex items-center gap-2 p-2 rounded-lg text-text-secondary hover:text-text"
+                    className="flex items-center gap-2 p-2 rounded-lg text-text-secondary hover:text-text-primary transition-colors"
                   >
-                    <ChatBubbleLeftIcon />
-                    <span>Comment</span>
+                    <MessageCircle className="w-5 h-5" />
+                    <span>{post.comments.length > 0 ? post.comments.length : ''}</span>
                   </button>
                   
                   <button 
-                    onClick={() => handleResharePost(post.id.toString())}
-                    className={`flex items-center gap-2 p-2 rounded-lg ${
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleResharePost(post.id.toString());
+                    }}
+                    className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
                       resharedPosts.has(post.id.toString()) 
-                        ? 'text-primary' 
-                        : 'text-text-secondary hover:text-text'
+                        ? 'text-green-500' 
+                        : 'text-text-secondary hover:text-text-primary'
                     }`}
                     disabled={post.author === authState.principal}
                   >
-                    <ArrowPathRoundedSquareIcon />
-                    <span>Reshare</span>
+                    <Repeat2 className={`w-5 h-5 ${resharedPosts.has(post.id.toString()) ? 'fill-current' : ''}`} />
+                    <span>{post.reshare_count > 0 ? post.reshare_count : ''}</span>
                   </button>
                   
-                  <button className="flex items-center gap-2 p-2 rounded-lg text-text-secondary hover:text-text">
-                    <EllipsisHorizontalIcon />
+                  <button 
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-2 p-2 rounded-lg text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    <MoreHorizontal className="w-5 h-5" />
                   </button>
                 </div>
-                
-                {/* Comment Form */}
-                {commentingPostId === post.id.toString() && (
-                  <div className="mt-4 flex gap-2 items-center">
-                    <input
-                      value={commentText}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => setCommentText(e.target.value)}
-                      placeholder="Write a comment..."
-                      className="flex-1 bg-background-input rounded-lg border border-secondary-700 p-3 text-text resize-none focus:border-primary focus:outline-none"
-                    />
-                    <Button 
-                      onClick={() => handleAddComment(post.id.toString())}
-                      disabled={!commentText.trim()}
-                      className="bg-primary hover:bg-primary-600 text-white"
-                    >
-                      <PaperAirplaneIcon />
-                    </Button>
-                  </div>
-                )}
               </div>
-            </div>
+            </motion.div>
           ))
         )}
       </div>
+
+      {/* Post Viewer Modal */}
+      <AnimatePresence>
+        {selectedPost && (
+          <PostViewer
+            post={selectedPost}
+            onClose={() => setSelectedPost(null)}
+            onLikePost={handleLikePost}
+            onResharePost={handleResharePost}
+            likedPosts={likedPosts}
+            resharedPosts={resharedPosts}
+            userProfiles={userProfiles}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -7,6 +7,7 @@ import type { UserProfile as BackendUserProfile } from '../../../declarations/ba
 
 interface ExploreViewProps {
   onViewProfile?: (userId: string) => void;
+  searchQuery?: string;
 }
 
 interface UserProfile {
@@ -16,7 +17,7 @@ interface UserProfile {
   avatar_url: string[];
 }
 
-const ExploreView = ({ onViewProfile }: ExploreViewProps) => {
+const ExploreView = ({ onViewProfile, searchQuery = '' }: ExploreViewProps) => {
   const { authState } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,6 +29,48 @@ const ExploreView = ({ onViewProfile }: ExploreViewProps) => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Handle searchQuery prop changes
+  useEffect(() => {
+    if (searchQuery) {
+      setSearchTerm(searchQuery);
+      // Fetch users with the search query
+      fetchUsersWithQuery(searchQuery);
+    }
+  }, [searchQuery]);
+
+  const fetchUsersWithQuery = async (query: string) => {
+    try {
+      setLoading(true);
+      const result = await backendService.searchUsers(query);
+      
+      if (Array.isArray(result)) {
+        const users = result.map((user: BackendUserProfile) => ({
+          id: principalToString(user.id),
+          username: user.username,
+          bio: user.bio,
+          avatar_url: user.avatar_url
+        }));
+        setUsers(users);
+      } else {
+        setUsers([]);
+      }
+
+      // Get following list if authenticated
+      if (authState.isAuthenticated) {
+        const followingList = await backendService.getFollowing(authState.principal || '');
+        if (Array.isArray(followingList)) {
+          const followingIds = new Set(followingList.map(principalToString));
+          setFollowing(followingIds);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setError('Failed to load users');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchUsers = async () => {
     try {

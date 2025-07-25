@@ -2,7 +2,6 @@
 export * from "./CounterView";
 export * from "./GreetingView";
 export * from "./LlmPromptView";
-export * from "./TodoListView";
 export { default as LoginView } from "./LoginView";
 export { default as ProfileView } from "./ProfileView";
 export { default as FeedView } from "./FeedView";

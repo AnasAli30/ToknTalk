@@ -54,6 +54,22 @@ const getOriginalAuthor = (post: Post) => {
   return null;
 };
 
+const extractImageFromContent = (content: string) => {
+  const imageMatch = content.match(/\[IMAGE:(.*?)\]/);
+  if (imageMatch) {
+    try {
+      return JSON.parse(imageMatch[1]);
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
+
+const getTextContent = (content: string) => {
+  return content.replace(/\[IMAGE:.*?\]/, '').trim();
+};
+
 const ProfileView = () => {
   const { authState, logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -525,8 +541,26 @@ const ProfileView = () => {
                 
                 {/* Post Content */}
                 <div className="text-text mb-3 whitespace-pre-wrap">
-                  {post.content}
+                  {getTextContent(post.content)}
                 </div>
+                
+                {/* Post Image */}
+                {(() => {
+                  const imageData = extractImageFromContent(post.content);
+                  return imageData ? (
+                    <div className="mb-3">
+                      <img 
+                        src={imageData.dataUrl} 
+                        alt={imageData.fileName || 'Post image'} 
+                        className="max-w-full max-h-96 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => {
+                          // Open image in full screen
+                          window.open(imageData.dataUrl, '_blank');
+                        }}
+                      />
+                    </div>
+                  ) : null;
+                })()}
                 
                 {/* Hashtags */}
                 {post.hashtags.length > 0 && (

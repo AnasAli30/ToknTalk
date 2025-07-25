@@ -3,6 +3,8 @@ import { backendService } from '../services/backendService';
 import { Button, InputField } from '../components';
 import { useAuth } from '../context/AuthContext';
 import { principalToString } from '../utils/principal';
+import { MessageCircle } from 'lucide-react'; // Added for new icon
+import { AnimatePresence, motion } from 'framer-motion'; // Added for new animations
 
 // Import types from backend declarations
 // Use any for now since the types might not be generated yet
@@ -40,7 +42,11 @@ interface UserProfile {
   // Add any other properties as needed
 }
 
-const ChatView = () => {
+interface ChatViewProps {
+  initialUserId?: string;
+}
+
+const ChatView: React.FC<ChatViewProps> = ({ initialUserId }) => {
   const { authState } = useAuth();
   const [chatThreads, setChatThreads] = useState<ChatThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
@@ -83,6 +89,14 @@ const ChatView = () => {
       };
     }
   }, [authState.isAuthenticated]);
+
+  // Handle initial user ID when navigating from profile
+  useEffect(() => {
+    if (initialUserId && authState.isAuthenticated) {
+      // Set the selected user to start chatting with them
+      setSelectedUser(initialUserId);
+    }
+  }, [initialUserId, authState.isAuthenticated]);
 
   // Fetch messages when a thread is selected
   useEffect(() => {
@@ -399,27 +413,53 @@ const ChatView = () => {
 
   if (!authState.isAuthenticated) {
     return (
-      <div className="bg-gray-700 rounded-lg p-6 shadow-md">
-        <div className="text-center text-gray-400">Please log in to use chat</div>
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-card rounded-xl p-8 border border-border text-center">
+          <MessageCircle className="w-16 h-16 mx-auto mb-4 text-text-secondary opacity-50" />
+          <p className="text-text-secondary">Please log in to use chat</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-700 rounded-lg p-6 shadow-md">
-      <h3 className="text-lg font-bold mb-4">Messages</h3>
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center space-x-3">
+        <div className="w-12 h-12 bg-gradient rounded-xl flex items-center justify-center">
+          <MessageCircle className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Messages</h1>
+          <p className="text-text-secondary">Connect with your community</p>
+        </div>
+      </div>
+
+      {/* Error Message */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-center space-x-2 p-4 bg-red-50 border border-red-200 rounded-lg"
+          >
+            <span className="text-red-700">{error}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
-      {error && <div className="text-red-400 mb-4">{error}</div>}
-      
-      <div className="flex h-[500px] gap-4">
+      <div className="flex h-[600px] gap-6">
         {/* Chat threads list */}
-        <div className="w-1/3 bg-gray-800 rounded-lg overflow-hidden flex flex-col">
-          <div className="p-3 bg-gray-900 font-semibold">Conversations</div>
+        <div className="w-1/3 bg-card rounded-xl border border-border overflow-hidden flex flex-col">
+          <div className="p-4 bg-background border-b border-border font-semibold text-text-primary">
+            Conversations
+          </div>
           <div className="flex-1 overflow-y-auto">
             {loading && chatThreads.length === 0 ? (
-              <div className="p-3 text-gray-400">Loading conversations...</div>
+              <div className="p-4 text-text-secondary">Loading conversations...</div>
             ) : chatThreads.length === 0 ? (
-              <div className="p-3 text-gray-400">No conversations yet</div>
+              <div className="p-4 text-text-secondary">No conversations yet</div>
             ) : (
               chatThreads.map(thread => {
                 try {
@@ -429,15 +469,17 @@ const ChatView = () => {
                     !thread.last_message.read;
                     
                   return (
-                    <div 
+                    <motion.div 
                       key={thread.id}
-                      className={`p-3 border-b border-gray-700 cursor-pointer hover:bg-gray-700 ${
-                        selectedThread === thread.id ? 'bg-gray-600' : ''
-                      } ${hasUnreadMessages ? 'bg-gray-600/50' : ''}`}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`p-4 border-b border-border cursor-pointer hover:bg-accent/5 transition-all duration-200 ${
+                        selectedThread === thread.id ? 'bg-accent/10 border-accent/20' : ''
+                      } ${hasUnreadMessages ? 'bg-accent/5' : ''}`}
                       onClick={() => selectThread(thread.id, otherUser)}
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-full bg-gray-600 overflow-hidden flex-shrink-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gradient overflow-hidden flex-shrink-0">
                           <img 
                             src={getAvatarUrl(otherUser)} 
                             alt={getUsernameForId(otherUser)} 
@@ -446,23 +488,23 @@ const ChatView = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold flex items-center justify-between">
-                            <span className="truncate">{getUsernameForId(otherUser)}</span>
+                            <span className="truncate text-text-primary">{getUsernameForId(otherUser)}</span>
                             {hasUnreadMessages && (
-                              <span className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0 ml-2"></span>
+                              <span className="w-3 h-3 bg-accent rounded-full flex-shrink-0 ml-2"></span>
                             )}
                           </div>
                           {thread.last_message && (
-                            <div className="text-sm text-gray-400 truncate">
+                            <div className="text-sm text-text-secondary truncate">
                               {thread.last_message.from === authState.principal ? 'You: ' : ''}
                               {thread.last_message.content}
                             </div>
                           )}
-                          <div className="text-xs text-gray-500 mt-1">
+                          <div className="text-xs text-text-muted mt-1">
                             {formatDate(thread.updated_at)}
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 } catch (err) {
                   console.error("Error rendering chat thread:", err, thread);
@@ -474,23 +516,23 @@ const ChatView = () => {
         </div>
         
         {/* Chat messages */}
-        <div className="w-2/3 bg-gray-800 rounded-lg overflow-hidden flex flex-col">
+        <div className="w-2/3 bg-card rounded-xl border border-border overflow-hidden flex flex-col">
           {selectedUser ? (
             <>
-              <div className="p-3 bg-gray-900 flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-gray-600 overflow-hidden">
+              <div className="p-4 bg-background border-b border-border flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient overflow-hidden">
                   <img 
                     src={getAvatarUrl(selectedUser)} 
                     alt={getUsernameForId(selectedUser)} 
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <span className="font-semibold">{getUsernameForId(selectedUser)}</span>
+                <span className="font-semibold text-text-primary">{getUsernameForId(selectedUser)}</span>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {messages.length === 0 ? (
-                  <div className="text-center text-gray-400 py-8">
+                  <div className="text-center text-text-secondary py-8">
                     {loading ? 'Loading messages...' : 'No messages yet. Say hello!'}
                   </div>
                 ) : (
@@ -499,8 +541,10 @@ const ChatView = () => {
                       messages[index + 1].from !== message.from;
                     
                     return (
-                      <div 
+                      <motion.div 
                         key={message.id.toString()}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
                         className={`${
                           message.from === authState.principal
                             ? 'ml-auto'
@@ -508,17 +552,17 @@ const ChatView = () => {
                         } max-w-[80%]`}
                       >
                         {/* Message bubble */}
-                        <div className={`p-2 rounded-lg ${
+                        <div className={`p-3 rounded-xl ${
                           message.from === authState.principal
-                            ? 'bg-blue-600 rounded-br-none'
-                            : 'bg-gray-700 rounded-bl-none'
+                            ? 'bg-accent text-white rounded-br-md'
+                            : 'bg-background border border-border rounded-bl-md'
                         }`}>
-                          <div>{message.content}</div>
+                          <div className="text-sm">{message.content}</div>
                         </div>
                         
                         {/* Timestamp and read status */}
                         {isLastInGroup && (
-                          <div className={`text-xs text-gray-400 mt-1 flex ${
+                          <div className={`text-xs text-text-muted mt-1 flex ${
                             message.from === authState.principal ? 'justify-end' : ''
                           }`}>
                             <span>{formatDate(message.created_at)}</span>
@@ -529,14 +573,14 @@ const ChatView = () => {
                             )}
                           </div>
                         )}
-                      </div>
+                      </motion.div>
                     );
                   })
                 )}
                 <div ref={messagesEndRef} />
               </div>
               
-              <div className="p-3 bg-gray-900 flex gap-2">
+              <div className="p-4 bg-background border-t border-border flex gap-3">
                 <InputField
                   value={newMessage}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setNewMessage(e.target.value)}
@@ -548,17 +592,17 @@ const ChatView = () => {
                 <Button 
                   onClick={handleSendMessage} 
                   disabled={loading || sendingMessage || !newMessage.trim()}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-accent hover:bg-accent/90 text-white px-6"
                 >
                   {sendingMessage ? 'Sending...' : 'Send'}
                 </Button>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-6">
-              <div className="w-16 h-16 mb-4 text-4xl">💬</div>
-              <div className="text-lg mb-2">Your Messages</div>
-              <p className="text-center text-sm">
+            <div className="flex-1 flex flex-col items-center justify-center text-text-secondary p-8">
+              <div className="w-20 h-20 mb-6 text-6xl">💬</div>
+              <div className="text-xl font-semibold mb-3 text-text-primary">Your Messages</div>
+              <p className="text-center text-sm max-w-md">
                 Select a conversation to start chatting or find new people to message in the Explore tab.
               </p>
             </div>
