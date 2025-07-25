@@ -1,0 +1,44 @@
+{
+  "canisters": {
+    "internet_identity": {
+      "type": "custom",
+      "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2025-04-04-v3/internet_identity.did",
+      "wasm": "https://github.com/dfinity/internet-identity/releases/download/release-2025-04-04-v3/internet_identity_dev.wasm.gz",
+      "init_arg": "(opt record { captcha_config = opt record { max_unsolved_captchas= 50:nat64; captcha_trigger = variant {Static = variant {CaptchaDisabled}}}})",
+      "remote": {
+        "id": {
+          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+        }
+      },
+      "frontend": {}
+    },
+    "llm": {
+      "type": "pull",
+      "id": "w36hm-eqaaa-aaaal-qr76a-cai"
+    },
+    "backend": {
+      "dependencies": ["llm", "internet_identity"],
+      "candid": "src/backend/backend.did",
+      "package": "backend",
+      "type": "rust",
+      "main": "src/backend/main.rs",
+      "shrink": true,
+      "gzip": true,
+      "wasm": "target/wasm32-unknown-unknown/release/backend.wasm",
+      "build": ["bash ./scripts/generate-candid.sh backend"],
+      "metadata": [
+        {
+          "name": "candid:service"
+        }
+      ]
+    },
+    "frontend": {
+      "dependencies": ["backend", "internet_identity"],
+      "type": "assets",
+      "source": ["src/frontend/dist/"]
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1,
+  "dfx": "0.25.0"
+}

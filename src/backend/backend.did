@@ -1,0 +1,127 @@
+type AssistantMessage = record {
+  content : opt text;
+  tool_calls : vec ToolCall;
+};
+type ChatMessage = variant {
+  tool : record { content : text; tool_call_id : text };
+  user : record { content : text };
+  assistant : AssistantMessage;
+  system : record { content : text };
+};
+type ChatThread = record {
+  id : text;
+  updated_at : nat64;
+  participants : vec principal;
+  last_message : opt Message;
+};
+type Comment = record {
+  id : nat64;
+  post_id : nat64;
+  content : text;
+  created_at : nat64;
+  author : principal;
+};
+type FunctionCall = record { name : text; arguments : vec ToolCallArgument };
+type Message = record {
+  id : nat64;
+  to : principal;
+  content : text;
+  from : principal;
+  read : bool;
+  created_at : nat64;
+};
+type Notification = record {
+  id : nat64;
+  read : bool;
+  recipient : principal;
+  created_at : nat64;
+  notification_type : NotificationType;
+};
+type NotificationType = variant {
+  Follow : record { user_id : principal };
+  Reshare : record { post_id : nat64; user_id : principal };
+  Like : record { post_id : nat64; user_id : principal };
+  Comment : record { post_id : nat64; user_id : principal; comment_id : nat64 };
+  Message : record { user_id : principal; message_id : nat64 };
+  Mention : record { post_id : nat64; user_id : principal };
+};
+type Post = record {
+  id : nat64;
+  reshare_count : nat64;
+  content : text;
+  post_type : PostType;
+  hashtags : vec text;
+  created_at : nat64;
+  author : principal;
+  likes : vec principal;
+  comments : vec nat64;
+};
+type PostType = variant {
+  Reshare : record { original_post_id : nat64; original_author : principal };
+  Original;
+};
+type Result = variant { Ok : Comment; Err : text };
+type Result_1 = variant { Ok : Post; Err : text };
+type Result_2 = variant { Ok : UserProfile; Err : text };
+type Result_3 = variant { Ok; Err : text };
+type Result_4 = variant { Ok : Message; Err : text };
+type Todo = record { id : nat64; "text" : text; completed : bool };
+type ToolCall = record { id : text; function : FunctionCall };
+type ToolCallArgument = record { value : text; name : text };
+type TrendingTopic = record {
+  hashtag : text;
+  count : nat64;
+  last_used : nat64;
+};
+type UserProfile = record {
+  id : principal;
+  bio : vec text;
+  username : text;
+  avatar_url : vec text;
+  following_count : nat64;
+  created_at : nat64;
+  followers_count : nat64;
+};
+service : {
+  add_comment : (nat64, text) -> (Result);
+  add_todo : (text) -> (Todo);
+  chat : (vec ChatMessage) -> (text);
+  create_post : (text) -> (Result_1);
+  create_profile : (text, vec text, vec text) -> (Result_2);
+  delete_todo : (nat64) -> (bool);
+  follow_user : (principal) -> (Result_3);
+  get_chat_threads : () -> (vec ChatThread) query;
+  get_comments : (nat64) -> (vec Comment) query;
+  get_connection_strength : (principal) -> (nat64) query;
+  get_count : () -> (nat64) query;
+  get_feed : (nat64) -> (vec Post) query;
+  get_followers : (principal) -> (vec principal) query;
+  get_following : (principal) -> (vec principal) query;
+  get_messages : (principal) -> (vec Message) query;
+  get_mutual_connections : (principal) -> (vec principal) query;
+  get_notifications : () -> (vec Notification) query;
+  get_original_post : (nat64) -> (Result_1) query;
+  get_personalized_feed : (nat64) -> (vec Post) query;
+  get_profile : () -> (Result_2) query;
+  get_todos : () -> (vec Todo) query;
+  get_trending_topics : (nat64) -> (vec TrendingTopic) query;
+  get_user_profile : (principal) -> (Result_2) query;
+  greet : (text) -> (text) query;
+  increment : () -> (nat64);
+  like_post : (nat64) -> (Result_1);
+  mark_all_notifications_as_read : () -> (Result_3);
+  mark_messages_as_read : (principal) -> (nat64);
+  mark_notification_as_read : (nat64) -> (Result_3);
+  prompt : (text) -> (text);
+  reshare_post : (nat64) -> (Result_1);
+  search_posts_by_hashtag : (text) -> (vec Post) query;
+  search_users : (text) -> (vec UserProfile) query;
+  send_message : (principal, text) -> (Result_4);
+  set_count : (nat64) -> (nat64);
+  suggest_connections : (nat64) -> (vec UserProfile) query;
+  toggle_todo : (nat64) -> (opt Todo);
+  unfollow_user : (principal) -> (Result_3);
+  unlike_post : (nat64) -> (Result_1);
+  update_profile : (opt vec text, opt vec text) -> (Result_2);
+  whoami : () -> (principal) query;
+}
