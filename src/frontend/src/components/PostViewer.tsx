@@ -189,11 +189,11 @@ const PostViewer: React.FC<PostViewerProps> = ({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-card rounded-xl max-w-4xl w-full max-h-[95vh] flex flex-col border border-border shadow-2xl"
+          className="bg-background rounded-xl max-w-4xl w-full max-h-[95vh] flex flex-col border border-border shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border">
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border bg-card">
             <h2 className="text-lg sm:text-xl font-semibold text-text">Post Details</h2>
             <button
               onClick={onClose}
@@ -204,7 +204,7 @@ const PostViewer: React.FC<PostViewerProps> = ({
           </div>
 
           {/* Post Content */}
-          <div className="p-4 sm:p-6 border-b border-border flex-shrink-0">
+          <div className="p-4 sm:p-6 border-b border-border flex-shrink-0 overflow-y-auto max-h-[60vh] bg-background">
             {/* Reshare Header */}
             {isReshare(post) && (
               <div className="flex items-center gap-2 text-text-secondary text-sm mb-4 p-3 bg-background/50 rounded-lg">
@@ -240,7 +240,7 @@ const PostViewer: React.FC<PostViewerProps> = ({
             </div>
             
             {/* Post Text */}
-            <div className="text-text mb-4 whitespace-pre-wrap leading-relaxed text-base">
+            <div className="text-text mb-4 whitespace-pre-wrap leading-relaxed text-base font-medium">
               {getTextContent(post.content)}
             </div>
             
@@ -252,7 +252,7 @@ const PostViewer: React.FC<PostViewerProps> = ({
                   <img 
                     src={imageData.dataUrl} 
                     alt={imageData.fileName || 'Post image'} 
-                    className="max-w-full max-h-96 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                    className="max-w-full max-h-64 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
                     onClick={() => {
                       window.open(imageData.dataUrl, '_blank');
                     }}
@@ -277,7 +277,7 @@ const PostViewer: React.FC<PostViewerProps> = ({
             )}
             
             {/* Post Stats */}
-            <div className="flex items-center gap-4 sm:gap-6 text-text-secondary text-sm py-3 border-t border-border">
+                          <div className="flex items-center gap-4 sm:gap-6 text-text-secondary text-sm py-3 border-t border-border bg-background/30">
               <div className="flex items-center gap-1">
                 <Heart className="w-4 h-4" />
                 <span>{post.likes.length} likes</span>
@@ -332,11 +332,11 @@ const PostViewer: React.FC<PostViewerProps> = ({
             </div>
           </div>
 
-          {/* Comments Section */}
-          <div className="flex-1 flex flex-col min-h-0">
+                      {/* Comments Section */}
+            <div className="flex-1 flex flex-col min-h-0 bg-background">
             {/* Comment Form */}
             {authState.isAuthenticated && (
-              <div className="p-4 border-b border-border flex-shrink-0">
+              <div className="p-4 border-b border-border flex-shrink-0 bg-card">
                 <div className="flex gap-3">
                   <div className="w-8 h-8 rounded-full bg-gradient overflow-hidden flex-shrink-0">
                     {getAvatarUrl(authState.principal || '') ? (
@@ -356,7 +356,7 @@ const PostViewer: React.FC<PostViewerProps> = ({
                       value={newComment}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setNewComment(e.target.value)}
                       placeholder="Write a comment..."
-                      className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-text focus:border-accent focus:outline-none placeholder-text-secondary text-sm"
+                      className="flex-1 bg-card border border-border rounded-lg px-3 py-2 text-text focus:border-accent focus:outline-none placeholder-text-secondary text-sm"
                       onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
                     />
                     <Button 
@@ -376,7 +376,7 @@ const PostViewer: React.FC<PostViewerProps> = ({
             )}
 
             {/* Comments List */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 bg-background/50">
               {loadingComments ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
@@ -411,7 +411,7 @@ const PostViewer: React.FC<PostViewerProps> = ({
                         )}
                       </div>
                       <div className="flex-1">
-                        <div className="bg-background rounded-lg p-3 border border-border">
+                        <div className="bg-card rounded-lg p-3 border border-border">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-semibold text-text">
                               {getUsernameForId(comment.author)}
