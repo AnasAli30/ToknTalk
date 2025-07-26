@@ -48,7 +48,7 @@ const ToknTalkLogo = () => (
     <img
   src="/favicon.png"
   alt="ToknTalk Logo"
-  className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl"
+  className="w-8 h-8 sm:w-10 sm:h-10"
 />
     </div>
     <span className="text-lg sm:text-xl font-bold gradient-text">
