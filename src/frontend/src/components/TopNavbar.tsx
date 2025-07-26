@@ -15,6 +15,7 @@ interface TopNavbarProps {
   onNavigateToNotifications: () => void;
   onNavigateToChat: () => void;
   notificationsCount?: number;
+  messagesCount?: number;
   currentView: string;
 }
 
@@ -23,6 +24,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
   onNavigateToNotifications,
   onNavigateToChat,
   notificationsCount = 0,
+  messagesCount = 0,
   currentView
 }) => {
   const { authState } = useAuth();
@@ -148,13 +150,22 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onNavigateToChat}
-              className={`p-2 sm:p-3 rounded-xl transition-all duration-300 ${
+              className={`relative p-2 sm:p-3 rounded-xl transition-all duration-300 ${
                 currentView === 'chat'
                   ? 'bg-accent text-white'
                   : 'bg-background border border-border hover:border-accent/40 text-text-primary'
               }`}
             >
               <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              {messagesCount > 0 && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center font-bold"
+                >
+                  {messagesCount > 99 ? '99+' : messagesCount}
+                </motion.div>
+              )}
             </motion.button>
 
             {/* User Avatar */}

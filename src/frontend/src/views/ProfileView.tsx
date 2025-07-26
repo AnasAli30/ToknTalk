@@ -33,12 +33,7 @@ interface Post {
   comments: bigint[];
   hashtags: string[];
   reshare_count: bigint;
-  post_type?: {
-    Reshare: {
-      original_post_id: bigint;
-      original_author: any;
-    };
-  };
+  post_type?: any; // Use any to match backend PostType
 }
 
 type GetProfileResult = { Ok: BackendUserProfile } | { Err: string };
@@ -106,22 +101,26 @@ const ProfileView = () => {
         const result = await actor.get_profile() as GetProfileResult;
         console.log("Profile result:", result);
         
-        if ('Ok' in result) {
-          const profileData = result.Ok;
-          setProfile({
-            ...profileData,
-            id: principalToString(profileData.id)
-          });
-          setUsername(profileData.username);
-          setBio(profileData.bio && profileData.bio.length > 0 ? profileData.bio[0] : '');
-          setAvatarUrl(profileData.avatar_url && profileData.avatar_url.length > 0 ? profileData.avatar_url[0] : '');
-          
-          // Fetch user posts
-          await fetchUserPosts(principalToString(profileData.id));
-        } else {
-          console.log("No profile found, need to create one");
-          setIsCreating(true);
+              if ('Ok' in result) {
+        const profileData = result.Ok;
+        setProfile({
+          ...profileData,
+          id: principalToString(profileData.id)
+        });
+        setUsername(profileData.username);
+        setBio(profileData.bio && profileData.bio.length > 0 ? profileData.bio[0] : '');
+        setAvatarUrl(profileData.avatar_url && profileData.avatar_url.length > 0 ? profileData.avatar_url[0] : '');
+        
+        // Fetch user posts
+        await fetchUserPosts(principalToString(profileData.id));
+      } else {
+        console.log("No profile found, need to create one");
+        setIsCreating(true);
+        // Fetch user posts even if no profile exists (for new users)
+        if (authState.principal) {
+          await fetchUserPosts(authState.principal);
         }
+      }
       } catch (err) {
         console.error('Error fetching profile:', err);
         setError('Failed to load profile');
@@ -138,19 +137,21 @@ const ProfileView = () => {
   const fetchUserPosts = async (userId: string) => {
     try {
       setPostsLoading(true);
-      const actor = await backendService.getAuthenticatedActor();
-      const posts = await actor.get_feed(BigInt(0)) as BackendPost[];
+      console.log('Fetching posts for user:', userId);
       
-      // Filter posts by the current user
-      const userPostsData = posts
-        .filter(post => principalToString(post.author) === userId)
-        .map(post => ({
-          ...post,
-          author: principalToString(post.author),
-          likes: post.likes.map(like => principalToString(like)),
-          comments: Array.isArray(post.comments) ? post.comments : Array.from(post.comments)
-        }));
+      // Use the dedicated getUserPosts method
+      const posts = await backendService.getUserPosts(userId) as BackendPost[];
+      console.log('User posts from backend:', posts.length);
       
+      // Transform the posts to match our interface
+      const userPostsData = posts.map(post => ({
+        ...post,
+        author: principalToString(post.author),
+        likes: post.likes.map(like => principalToString(like)),
+        comments: Array.isArray(post.comments) ? post.comments : Array.from(post.comments)
+      }));
+      
+      console.log('User posts found:', userPostsData.length);
       setUserPosts(userPostsData);
       
       // Check which posts are liked by current user
@@ -199,6 +200,11 @@ const ProfileView = () => {
           id: principalToString(profileData.id)
         });
         setIsCreating(false);
+        
+        // Fetch user posts after creating profile
+        if (authState.principal) {
+          await fetchUserPosts(authState.principal);
+        }
       } else {
         setError(result.Err);
       }

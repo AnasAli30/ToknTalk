@@ -37,6 +37,7 @@ interface PostViewerProps {
   onClose: () => void;
   onLikePost: (postId: string) => void;
   onResharePost: (postId: string) => void;
+  onViewProfile: (userId: string) => void;
   likedPosts: Set<string>;
   resharedPosts: Set<string>;
   userProfiles: Record<string, UserProfile>;
@@ -65,6 +66,7 @@ const PostViewer: React.FC<PostViewerProps> = ({
   onClose,
   onLikePost,
   onResharePost,
+  onViewProfile,
   likedPosts,
   resharedPosts,
   userProfiles
@@ -215,7 +217,10 @@ const PostViewer: React.FC<PostViewerProps> = ({
             
             {/* Author Info */}
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-gradient overflow-hidden">
+              <button
+                onClick={() => onViewProfile(isReshare(post) ? getOriginalAuthor(post) || post.author : post.author)}
+                className="w-12 h-12 rounded-full bg-gradient overflow-hidden hover:opacity-80 transition-opacity cursor-pointer"
+              >
                 {getAvatarUrl(isReshare(post) ? getOriginalAuthor(post) || post.author : post.author) ? (
                   <img 
                     src={getAvatarUrl(isReshare(post) ? getOriginalAuthor(post) || post.author : post.author)} 
@@ -227,11 +232,14 @@ const PostViewer: React.FC<PostViewerProps> = ({
                     {getUsernameForId(isReshare(post) ? getOriginalAuthor(post) || post.author : post.author).slice(0, 2).toUpperCase()}
                   </div>
                 )}
-              </div>
+              </button>
               <div className="flex-1">
-                <div className="font-semibold text-text">
+                <button
+                  onClick={() => onViewProfile(isReshare(post) ? getOriginalAuthor(post) || post.author : post.author)}
+                  className="font-semibold text-text hover:text-accent transition-colors cursor-pointer text-left"
+                >
                   {getUsernameForId(isReshare(post) ? getOriginalAuthor(post) || post.author : post.author)}
-                </div>
+                </button>
                 <div className="flex items-center gap-2 text-text-secondary text-sm">
                   <Calendar className="w-4 h-4" />
                   <span>{formatDate(post.created_at)}</span>
@@ -397,7 +405,10 @@ const PostViewer: React.FC<PostViewerProps> = ({
                       animate={{ opacity: 1, y: 0 }}
                       className="flex gap-3"
                     >
-                      <div className="w-8 h-8 rounded-full bg-gradient overflow-hidden flex-shrink-0">
+                      <button
+                        onClick={() => onViewProfile(comment.author)}
+                        className="w-8 h-8 rounded-full bg-gradient overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
+                      >
                         {getAvatarUrl(comment.author) ? (
                           <img 
                             src={getAvatarUrl(comment.author)} 
@@ -409,13 +420,16 @@ const PostViewer: React.FC<PostViewerProps> = ({
                             {getUsernameForId(comment.author).slice(0, 2).toUpperCase()}
                           </div>
                         )}
-                      </div>
+                      </button>
                       <div className="flex-1">
                         <div className="bg-card rounded-lg p-3 border border-border">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-text">
+                            <button
+                              onClick={() => onViewProfile(comment.author)}
+                              className="font-semibold text-text hover:text-accent transition-colors cursor-pointer"
+                            >
                               {getUsernameForId(comment.author)}
-                            </span>
+                            </button>
                             <span className="text-text-secondary text-sm">
                               {formatDate(comment.created_at)}
                             </span>

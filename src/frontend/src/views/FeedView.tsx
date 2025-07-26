@@ -61,9 +61,10 @@ const getOriginalAuthor = (post: Post) => {
 
 interface FeedViewProps {
   searchQuery?: string;
+  onViewProfile?: (userId: string) => void;
 }
 
-const FeedView: React.FC<FeedViewProps> = ({ searchQuery = '' }) => {
+const FeedView: React.FC<FeedViewProps> = ({ searchQuery = '', onViewProfile }) => {
   const { authState } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState('');
@@ -399,7 +400,7 @@ const FeedView: React.FC<FeedViewProps> = ({ searchQuery = '' }) => {
                   value={newPost}
                   onChange={(e) => setNewPost(e.target.value)}
                   placeholder="What's happening?"
-                  className="w-full bg-background rounded-lg border border-border p-3 text-text-primary resize-none focus:border-accent focus:outline-none min-h-[100px]"
+                  className="w-full bg-background rounded-lg border border-border p-3 text-text-primary resize-none focus:border-accent focus:outline-none min-h-[50px]"
                 />
                 
                 {/* Image Preview */}
@@ -694,6 +695,7 @@ const FeedView: React.FC<FeedViewProps> = ({ searchQuery = '' }) => {
             onClose={() => setSelectedPost(null)}
             onLikePost={handleLikePost}
             onResharePost={handleResharePost}
+            onViewProfile={onViewProfile || (() => {})}
             likedPosts={likedPosts}
             resharedPosts={resharedPosts}
             userProfiles={userProfiles}

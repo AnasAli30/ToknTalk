@@ -1,4 +1,18 @@
 import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Heart, 
+  MessageCircle, 
+  Repeat2, 
+  Users, 
+  User, 
+  X, 
+  DollarSign,
+  Calendar,
+  Hash,
+  Send,
+  Loader2
+} from 'lucide-react';
 import { backendService } from '../services/backendService';
 import { walletService } from '../services/walletService';
 import { Button } from '../components';
@@ -34,16 +48,7 @@ interface Post {
   };
 }
 
-// Simple icon placeholders
-const HeartIcon = () => <span>❤️</span>;
-const HeartIconSolid = () => <span>❤️</span>;
-const ChatBubbleLeftIcon = () => <span>💬</span>;
-const ArrowPathRoundedSquareIcon = () => <span>🔄</span>;
-const UserGroupIcon = () => <span>👥</span>;
-const UsersIcon = () => <span>👤</span>;
-const MessageIcon = () => <span>💬</span>;
-const CloseIcon = () => <span>✕</span>;
-const DollarIcon = () => <span>$</span>;
+// Remove old icon placeholders - using Lucide React icons now
 
 function isPlainObject(x: unknown): x is Record<string, unknown> {
   return (
@@ -425,10 +430,10 @@ const ProfileDetailsView = ({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-background-card rounded-xl p-8 shadow-lg max-w-md w-full mx-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-card rounded-xl p-8 shadow-2xl max-w-md w-full mx-4 border border-border">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <Loader2 className="w-8 h-8 animate-spin text-accent" />
             <span className="ml-3 text-text-secondary">Loading profile...</span>
           </div>
         </div>
@@ -438,11 +443,11 @@ const ProfileDetailsView = ({
 
   if (error && !profile) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-background-card rounded-xl p-8 shadow-lg max-w-md w-full mx-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-card rounded-xl p-8 shadow-2xl max-w-md w-full mx-4 border border-border">
           <div className="text-center">
-            <p className="text-error mb-4">{error}</p>
-            <Button onClick={onClose} className="bg-primary hover:bg-primary-600">
+            <p className="text-red-400 mb-4">{error}</p>
+            <Button onClick={onClose} className="bg-accent hover:bg-accent/80 text-white">
               Close
             </Button>
           </div>
@@ -452,29 +457,42 @@ const ProfileDetailsView = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background-card rounded-xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-background-card border-b border-secondary-800 p-6 rounded-t-xl">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-text">Profile</h2>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-full hover:bg-secondary-800 text-text-secondary transition-colors"
-            >
-              <CloseIcon />
-            </button>
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-background rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-border flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="sticky top-0 bg-background border-b border-border p-6 rounded-t-xl">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-text">Profile</h2>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-full hover:bg-background text-text-secondary transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-        </div>
 
         {/* Profile Info */}
-        <div className="p-6">
+        <div className="p-6 bg-background overflow-y-auto flex-1">
           <div className="flex items-start space-x-6 mb-6">
-            <div className="w-24 h-24 rounded-full bg-secondary-800 overflow-hidden border-2 border-primary/20 flex-shrink-0">
+            <div className="w-24 h-24 rounded-full bg-gradient overflow-hidden border-2 border-accent/20 flex-shrink-0">
               {profile?.avatar_url && profile.avatar_url.length > 0 ? (
                 <img src={profile.avatar_url[0]} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-text-secondary text-3xl">
+                <div className="w-full h-full flex items-center justify-center text-white text-3xl font-bold">
                   {profile?.username?.charAt(0).toUpperCase() || 'U'}
                 </div>
               )}
@@ -483,7 +501,7 @@ const ProfileDetailsView = ({
             <div className="flex-1">
               <h3 className="text-2xl font-bold text-text mb-2">{profile?.username}</h3>
               <p className="text-text-secondary mb-4">{formatBio(profile?.bio)}</p>
-              <p className="text-text-muted text-sm mb-4">@{userId.slice(0, 8)}...</p>
+              <p className="text-text-secondary text-sm mb-4">@{userId.slice(0, 8)}...</p>
               
               <div className="flex space-x-4">
                 <Button
@@ -491,20 +509,24 @@ const ProfileDetailsView = ({
                   disabled={loadingFollow || userId === authState.principal}
                   className={`${
                     isFollowing 
-                      ? 'bg-secondary-700 hover:bg-secondary-600' 
-                      : 'bg-primary hover:bg-primary-600'
+                      ? 'bg-background border border-border hover:border-accent/40 text-text hover:text-accent' 
+                      : 'bg-accent hover:bg-accent/80 text-white'
                   } disabled:opacity-50`}
                 >
-                  {loadingFollow ? '...' : isFollowing ? 'Unfollow' : 'Follow'}
+                  {loadingFollow ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    isFollowing ? 'Unfollow' : 'Follow'
+                  )}
                 </Button>
                 
                 {onNavigateToChat && (
                   <Button
                     onClick={handleMessage}
                     disabled={loadingMessage || userId === authState.principal}
-                    className="bg-secondary-700 hover:bg-secondary-600 disabled:opacity-50"
+                    className="bg-card border border-border hover:border-accent/40 text-text hover:text-accent disabled:opacity-50"
                   >
-                    <MessageIcon />
+                    <MessageCircle className="w-4 h-4" />
                     <span className="ml-2">Message</span>
                   </Button>
                 )}
@@ -512,9 +534,9 @@ const ProfileDetailsView = ({
                 <Button
                   onClick={() => setShowTipModal(true)}
                   disabled={userId === authState.principal}
-                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                  className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                 >
-                  <DollarIcon />
+                  <DollarSign className="w-4 h-4" />
                   <span className="ml-2">Tip</span>
                 </Button>
               </div>
@@ -522,28 +544,28 @@ const ProfileDetailsView = ({
           </div>
 
           {/* Stats */}
-          <div className="flex justify-around py-4 border-t border-secondary-800 mb-6">
+          <div className="flex justify-around py-4 border-t border-border mb-6 bg-card/50 rounded-lg">
             <div className="text-center">
               <div className="text-xl font-bold text-text">{posts.length}</div>
               <div className="text-text-secondary text-sm">Posts</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-bold text-text">{profile?.followers_count || 0}</div>
+              <div className="text-xl font-bold text-text">{Number(profile?.followers_count || 0)}</div>
               <div className="text-text-secondary text-sm">Followers</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-bold text-text">{profile?.following_count || 0}</div>
+              <div className="text-xl font-bold text-text">{Number(profile?.following_count || 0)}</div>
               <div className="text-text-secondary text-sm">Following</div>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-secondary-800 mb-6">
+          <div className="flex border-b border-border mb-6">
             <button
               onClick={() => setActiveTab('posts')}
               className={`px-4 py-2 font-medium transition-colors ${
                 activeTab === 'posts'
-                  ? 'text-primary border-b-2 border-primary'
+                  ? 'text-accent border-b-2 border-accent'
                   : 'text-text-secondary hover:text-text'
               }`}
             >
@@ -553,22 +575,22 @@ const ProfileDetailsView = ({
               onClick={() => setActiveTab('followers')}
               className={`px-4 py-2 font-medium transition-colors ${
                 activeTab === 'followers'
-                  ? 'text-primary border-b-2 border-primary'
+                  ? 'text-accent border-b-2 border-accent'
                   : 'text-text-secondary hover:text-text'
               }`}
             >
-              <UserGroupIcon />
+              <Users className="w-4 h-4" />
               <span className="ml-2">Followers ({followers.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('following')}
               className={`px-4 py-2 font-medium transition-colors ${
                 activeTab === 'following'
-                  ? 'text-primary border-b-2 border-primary'
+                  ? 'text-accent border-b-2 border-accent'
                   : 'text-text-secondary hover:text-text'
               }`}
             >
-              <UsersIcon />
+              <Users className="w-4 h-4" />
               <span className="ml-2">Following ({following.length})</span>
             </button>
           </div>
@@ -583,11 +605,11 @@ const ProfileDetailsView = ({
                 </div>
               ) : (
                 posts.map((post) => (
-                  <div key={post.id.toString()} className="border border-secondary-800 rounded-lg p-4">
+                  <div key={post.id.toString()} className="border border-border rounded-lg p-4 bg-card">
                     {/* Reshare Header */}
                     {isReshare(post) && (
-                      <div className="bg-background-light px-4 py-2 rounded-t-lg text-text-secondary text-sm flex items-center gap-2 mb-3">
-                        <ArrowPathRoundedSquareIcon />
+                      <div className="bg-background/50 px-4 py-2 rounded-t-lg text-text-secondary text-sm flex items-center gap-2 mb-3">
+                        <Repeat2 className="w-4 h-4" />
                         <span>{profile?.username} reshared</span>
                       </div>
                     )}
@@ -621,7 +643,7 @@ const ProfileDetailsView = ({
                         {post.hashtags.map((tag, index) => (
                           <span 
                             key={index} 
-                            className="text-primary text-sm hover:underline cursor-pointer"
+                            className="text-accent text-sm hover:underline cursor-pointer"
                           >
                             #{tag}
                           </span>
@@ -630,7 +652,7 @@ const ProfileDetailsView = ({
                     )}
                     
                     {/* Post Stats and Actions */}
-                    <div className="flex items-center justify-between pt-3 border-t border-secondary-800">
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
                       <div className="flex items-center gap-4 text-text-secondary text-sm">
                         <div className="flex items-center gap-1">
                           <span>{post.likes.length}</span>
@@ -644,20 +666,20 @@ const ProfileDetailsView = ({
                           <span>{post.reshare_count}</span>
                           <span>reshares</span>
                         </div>
-                        <span className="text-text-muted">{formatDate(post.created_at)}</span>
+                        <span className="text-text-secondary">{formatDate(post.created_at)}</span>
                       </div>
                       
                       <button 
                         onClick={() => handleLike(post.id.toString())}
                         className={`flex items-center gap-2 p-2 rounded-lg ${
                           likedPosts.has(post.id.toString()) 
-                            ? 'text-primary' 
+                            ? 'text-accent' 
                             : 'text-text-secondary hover:text-text'
                         }`}
                       >
                         {likedPosts.has(post.id.toString()) 
-                          ? <HeartIconSolid /> 
-                          : <HeartIcon />
+                          ? <Heart className="w-4 h-4 fill-current" /> 
+                          : <Heart className="w-4 h-4" />
                         }
                         <span>Like</span>
                       </button>
@@ -678,9 +700,9 @@ const ProfileDetailsView = ({
                 followers.map((followerId) => {
                   const followerProfile = userProfiles[followerId];
                   return (
-                    <div key={followerId} className="flex items-center justify-between p-3 border border-secondary-800 rounded-lg">
+                    <div key={followerId} className="flex items-center justify-between p-3 border border-border rounded-lg bg-card">
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 rounded-full bg-secondary-800 overflow-hidden">
+                        <div className="w-12 h-12 rounded-full bg-gradient overflow-hidden">
                           <img 
                             src={getAvatarUrl(followerProfile)} 
                             alt="Avatar" 
@@ -701,7 +723,7 @@ const ProfileDetailsView = ({
                       </div>
                       <Button 
                         onClick={() => handleViewUser(followerId)}
-                        className="bg-secondary-700 hover:bg-secondary-600"
+                        className="bg-accent hover:bg-accent/80 text-white"
                       >
                         View
                       </Button>
@@ -722,9 +744,9 @@ const ProfileDetailsView = ({
                 following.map((followingId) => {
                   const followingProfile = userProfiles[followingId];
                   return (
-                    <div key={followingId} className="flex items-center justify-between p-3 border border-secondary-800 rounded-lg">
+                    <div key={followingId} className="flex items-center justify-between p-3 border border-border rounded-lg bg-card">
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 rounded-full bg-secondary-800 overflow-hidden">
+                        <div className="w-12 h-12 rounded-full bg-gradient overflow-hidden">
                           <img 
                             src={getAvatarUrl(followingProfile)} 
                             alt="Avatar" 
@@ -745,7 +767,7 @@ const ProfileDetailsView = ({
                       </div>
                       <Button 
                         onClick={() => handleViewUser(followingId)}
-                        className="bg-secondary-700 hover:bg-secondary-600"
+                        className="bg-accent hover:bg-accent/80 text-white"
                       >
                         View
                       </Button>
@@ -756,70 +778,83 @@ const ProfileDetailsView = ({
             </div>
           )}
         </div>
-      </div>
 
-      {/* Tip Modal */}
-      {showTipModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-background-card rounded-xl p-6 w-full max-w-md border border-secondary-800">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-text">Tip {profile?.username}</h3>
-              <button
-                onClick={() => setShowTipModal(false)}
-                className="p-2 rounded-full hover:bg-secondary-800 text-text-secondary transition-colors"
-              >
-                <CloseIcon />
-              </button>
-            </div>
-            
-            <form onSubmit={handleTip} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-text">Amount (ICP)</label>
-                <input
-                  type="number"
-                  step="0.00000001"
-                  value={tipAmount}
-                  onChange={(e) => setTipAmount(e.target.value)}
-                  className="w-full p-3 border border-secondary-800 rounded-lg bg-background text-text"
-                  placeholder="0.00000001"
-                  disabled={tipLoading}
-                />
-              </div>
-              
-              {tipError && (
-                <div className="p-3 bg-red-900/20 border border-red-800 rounded-lg text-red-400 text-sm">
-                  {tipError}
-                </div>
-              )}
-              
-              {tipSuccess && (
-                <div className="p-3 bg-green-900/20 border border-green-800 rounded-lg text-green-400 text-sm">
-                  {tipSuccess}
-                </div>
-              )}
-              
-              <div className="flex space-x-3">
+        {/* Tip Modal */}
+        {showTipModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-card rounded-xl p-6 w-full max-w-md border border-border shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-text">Tip {profile?.username}</h3>
                 <button
-                  type="button"
                   onClick={() => setShowTipModal(false)}
-                  className="flex-1 px-4 py-2 border border-secondary-800 rounded-lg hover:bg-secondary-800 transition-colors text-text"
-                  disabled={tipLoading}
+                  className="p-2 rounded-full hover:bg-background text-text-secondary transition-colors"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={tipLoading}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                >
-                  {tipLoading ? 'Sending...' : 'Send Tip'}
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+              
+              <form onSubmit={handleTip} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-text">Amount (ICP)</label>
+                  <input
+                    type="number"
+                    step="0.00000001"
+                    value={tipAmount}
+                    onChange={(e) => setTipAmount(e.target.value)}
+                    className="w-full p-3 border border-border rounded-lg bg-background text-text focus:border-accent focus:outline-none"
+                    placeholder="0.00000001"
+                    disabled={tipLoading}
+                  />
+                </div>
+                
+                {tipError && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                    {tipError}
+                  </div>
+                )}
+                
+                {tipSuccess && (
+                  <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-sm">
+                    {tipSuccess}
+                  </div>
+                )}
+                
+                <div className="flex space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowTipModal(false)}
+                    className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-background transition-colors text-text"
+                    disabled={tipLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={tipLoading}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    {tipLoading ? (
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Sending...
+                      </div>
+                    ) : (
+                      'Send Tip'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

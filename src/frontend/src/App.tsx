@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Home, 
@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { playNotificationSound, playMessageSound } from './utils/sound';
+import { notificationService } from './services/notificationService';
 import { 
   LoginView, 
   ProfileView, 
@@ -134,7 +136,8 @@ const MobileNavMenu = ({
   currentView, 
   onNavigate,
   onLogout,
-  notificationsCount = 0
+  notificationsCount = 0,
+  messagesCount = 0
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -142,6 +145,7 @@ const MobileNavMenu = ({
   onNavigate: (view: 'feed' | 'explore' | 'trending' | 'notifications' | 'chat' | 'profile' | 'wallet') => void;
   onLogout: () => void;
   notificationsCount?: number;
+  messagesCount?: number;
 }) => {
   const navigationItems = [
     { icon: Home, label: 'Home', view: 'feed' as const },
@@ -234,7 +238,7 @@ const MobileNavMenu = ({
                       onNavigate('chat');
                       onClose();
                     }}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl transition-all duration-300 ${
+                    className={`relative flex items-center justify-center gap-2 p-3 rounded-xl transition-all duration-300 ${
                       currentView === 'chat'
                         ? 'bg-accent text-white'
                         : 'text-text hover:text-text bg-card hover:bg-card/80 border border-border hover:border-accent/40'
@@ -242,6 +246,15 @@ const MobileNavMenu = ({
                   >
                     <MessageCircle className="w-4 h-4" />
                     <span className="font-medium text-sm">Chat</span>
+                    {messagesCount > 0 && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1 -right-1 w-4 h-4 bg-accent text-white rounded-full text-xs flex items-center justify-center font-bold"
+                      >
+                        {messagesCount > 99 ? '99+' : messagesCount}
+                      </motion.div>
+                    )}
                   </motion.button>
                 </div>
               </div>
@@ -277,9 +290,25 @@ const AppContent = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [chatTargetUserId, setChatTargetUserId] = useState<string | null>(null);
   const [notificationsCount, setNotificationsCount] = useState(0);
+  const [messagesCount, setMessagesCount] = useState(0);
   const [profileComplete, setProfileComplete] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Start polling for notifications and messages
+  useEffect(() => {
+    if (authState.isAuthenticated && profileComplete) {
+      notificationService.startPolling(
+        (count) => setNotificationsCount(count),
+        (count) => setMessagesCount(count),
+        10000 // 10 seconds
+      );
+
+      return () => {
+        notificationService.stopPolling();
+      };
+    }
+  }, [authState.isAuthenticated, profileComplete]);
 
   const handleLogout = () => {
     // Clear profile ID from localStorage on logout
@@ -295,6 +324,9 @@ const AppContent = () => {
 
   const handleNavigateToNotifications = () => {
     setCurrentView('notifications');
+    // Reset notification count when user navigates to notifications
+    notificationService.resetNotificationCount();
+    setNotificationsCount(0);
   };
 
   const handleNavigateToChat = () => {
@@ -304,6 +336,9 @@ const AppContent = () => {
     }
     setCurrentView('chat');
     setSelectedUserId(null); // Close the profile modal
+    // Reset message count when user navigates to chat
+    notificationService.resetMessageCount();
+    setMessagesCount(0);
   };
 
   // If not authenticated, show landing page
@@ -326,7 +361,7 @@ const AppContent = () => {
   const renderView = () => {
     switch (currentView) {
       case 'feed':
-        return <FeedView searchQuery={searchQuery} />;
+        return <FeedView searchQuery={searchQuery} onViewProfile={setSelectedUserId} />;
       case 'explore':
         return <ExploreView onViewProfile={setSelectedUserId} searchQuery={searchQuery} />;
       case 'trending':
@@ -413,6 +448,7 @@ const AppContent = () => {
               onNavigateToNotifications={handleNavigateToNotifications}
               onNavigateToChat={handleNavigateToChat}
               notificationsCount={notificationsCount}
+              messagesCount={messagesCount}
               currentView={currentView}
             />
           </div>
@@ -443,6 +479,7 @@ const AppContent = () => {
         onNavigate={setCurrentView}
         onLogout={handleLogout}
         notificationsCount={notificationsCount}
+        messagesCount={messagesCount}
       />
 
       {/* Profile Details Modal */}

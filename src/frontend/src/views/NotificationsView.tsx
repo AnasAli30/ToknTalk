@@ -31,13 +31,24 @@ const NotificationsView = () => {
     try {
       setLoading(true);
       const result = await backendService.getNotifications() as BackendNotification[];
-      // Convert recipient Principal to string
-      const notifications: Notification[] = result.map((n: BackendNotification) => ({
-        ...n,
-        recipient: principalToString(n.recipient),
-      }));
+      // Convert recipient Principal to string and filter out unknown notification types
+      const notifications: Notification[] = result
+        .map((n: BackendNotification) => ({
+          ...n,
+          recipient: principalToString(n.recipient),
+        }))
+        .filter(notification => {
+          const t = notification.notification_type;
+          return 'Like' in t || 'Comment' in t || 'Follow' in t || 'Mention' in t;
+        })
+        .sort((a, b) => {
+          // Sort by created_at timestamp in reverse order (newest first)
+          const timeA = typeof a.created_at === 'bigint' ? Number(a.created_at) : a.created_at;
+          const timeB = typeof b.created_at === 'bigint' ? Number(b.created_at) : b.created_at;
+          return timeB - timeA;
+        });
       setNotifications(notifications);
-      // Extract all user IDs from notifications
+      // Extract all user IDs from notifications (only known types)
       const userIds = new Set<string>();
       notifications.forEach(notification => {
         const t = notification.notification_type;
