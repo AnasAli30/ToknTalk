@@ -22,12 +22,8 @@
 - [🌟 Features](#-features)
 - [🛠️ Tech Stack](#️-tech-stack)
 - [🚀 Quick Start](#-quick-start)
-- [📱 Screenshots](#-screenshots)
 - [🏗️ Architecture](#️-architecture)
-- [🔧 Development](#-development)
 - [📦 Deployment](#-deployment)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
 
 ---
 
@@ -53,13 +49,6 @@
 - **🧠 LLM Integration** - AI-powered content generation and assistance
 - **🔧 Tool Calls** - AI agents can execute actions through smart contracts
 - **📝 Content Enhancement** - AI-assisted post creation and optimization
-
-### 🎨 Modern UI/UX
-- **📱 Mobile-First** - Fully responsive design with mobile navigation
-- **🎭 Smooth Animations** - Framer Motion powered transitions and effects
-- **🎨 Modern Design** - Clean, elegant interface with Tailwind CSS
-- **⚡ Fast Performance** - Optimized for speed and user experience
-- **🔔 Real-time Updates** - Live notifications and activity feeds
 
 ### 🔐 Security & Privacy
 - **🔑 Internet Identity** - Secure authentication with DFINITY's II
@@ -90,12 +79,6 @@
 - **🔑 Internet Identity** - DFINITY's authentication system
 - **👤 Principal Management** - Secure user identification
 - **🔄 Session Management** - Persistent user sessions
-
-### Development Tools
-- **📦 PNPM** - Fast package manager
-- **🔍 Prettier** - Code formatting
-- **🧪 Vitest** - Unit testing framework
-- **🐕 Husky** - Git hooks for code quality
 
 ---
 
@@ -157,30 +140,6 @@ npm run lint
 
 ---
 
-## 📱 Screenshots
-
-### 🏠 Landing Page
-- Modern hero section with animated background
-- Feature showcase with interactive elements
-- Responsive design for all devices
-
-### 📱 Mobile Experience
-- Mobile-first navigation with slide-out menu
-- Touch-friendly interface
-- Optimized for mobile performance
-
-### 💰 Wallet Interface
-- Built-in crypto wallet with ICP support
-- Transaction history and balance tracking
-- Direct tipping functionality
-
-### 🎨 Theme Support
-- Dark and light theme switching
-- Smooth theme transitions
-- Consistent design across all views
-
----
-
 ## 🏗️ Architecture
 
 ### Canister Structure
@@ -214,61 +173,6 @@ npm run lint
 3. **Content Creation** → Posts/Comments → On-chain Storage
 4. **Wallet Operations** → Token Transfers → Transaction History
 5. **AI Integration** → LLM Canister → Smart Contract Execution
-
----
-
-## 🔧 Development
-
-### Project Structure
-```
-IC-Vibe-Coding-Template-Rust/
-├── src/
-│   ├── backend/           # Rust backend canister
-│   │   ├── src/lib.rs     # Main backend logic
-│   │   ├── backend.did    # Candid interface
-│   │   └── Cargo.toml     # Rust dependencies
-│   ├── frontend/          # React frontend
-│   │   ├── src/
-│   │   │   ├── components/    # Reusable UI components
-│   │   │   ├── views/         # Page components
-│   │   │   ├── services/      # API services
-│   │   │   ├── context/       # React context providers
-│   │   │   └── utils/         # Utility functions
-│   │   ├── package.json       # Frontend dependencies
-│   │   └── vite.config.ts     # Vite configuration
-│   └── declarations/      # Generated Candid types
-├── dfx.json              # DFX configuration
-├── package.json          # Root package.json
-└── README.md            # This file
-```
-
-### Key Features Implementation
-
-#### 🎯 Social Media Features
-- **Posts**: Create, edit, delete posts with text and images
-- **Comments**: Threaded comments with real-time updates
-- **Likes/Reshares**: Social interactions with notification system
-- **Profiles**: Customizable user profiles with avatars and bios
-- **Follow System**: Follow/unfollow users with mutual connections
-
-#### 💰 Crypto Wallet Features
-- **Wallet Creation**: Automatic wallet creation for new users
-- **Token Transfers**: Send ICP tokens to other users
-- **Direct Tips**: Tip users directly from their profiles
-- **Transaction History**: Complete transaction tracking
-- **Balance Management**: Real-time balance updates
-
-#### 🤖 AI Integration Features
-- **Chat Agents**: AI-powered chat bots
-- **Smart Contracts**: AI agents can execute smart contracts
-- **Content Generation**: AI-assisted content creation
-- **Tool Calls**: AI agents with function calling capabilities
-
-#### 📱 Responsive Design Features
-- **Mobile Navigation**: Slide-out menu with backdrop blur
-- **Responsive Layout**: Adapts to all screen sizes
-- **Touch-Friendly**: Optimized for mobile interaction
-- **Theme Support**: Dark/light theme with smooth transitions
 
 ---
 
@@ -372,42 +276,6 @@ export INTERNET_IDENTITY_URL=https://identity.ic0.app
 - [x] Principal-based user identification
 - [x] On-chain data storage
 - [x] Decentralized architecture
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Development Setup
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-### Code Style
-- Use Prettier for code formatting
-- Follow TypeScript best practices
-- Write meaningful commit messages
-- Add comments for complex logic
-
----
-
-## 📄 License
-
-This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **DFINITY Foundation** - For the Internet Computer platform
-- **Internet Identity** - For secure authentication
-- **React Team** - For the amazing frontend framework
-- **Rust Team** - For the powerful backend language
-- **Tailwind CSS** - For the utility-first CSS framework
-- **Framer Motion** - For smooth animations
 
 ---
 
