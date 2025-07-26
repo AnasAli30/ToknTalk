@@ -41,11 +41,15 @@ import { TopNavbar } from './components';
 // ToknTalk Logo Component
 const ToknTalkLogo = () => (
   <motion.div 
-    className="flex items-center space-x-3"
+    className="flex items-center space-x-1"
     whileHover={{ scale: 1.05 }}
   >
-    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient rounded-xl flex items-center justify-center glow">
-      <Sparkles className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+    <div className="w-8 h-8 sm:w-10 sm:h-10 ">
+    <img
+  src="/favicon.png"
+  alt="ToknTalk Logo"
+  className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl"
+/>
     </div>
     <span className="text-lg sm:text-xl font-bold gradient-text">
       ToknTalk

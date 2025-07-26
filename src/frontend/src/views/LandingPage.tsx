@@ -285,11 +285,16 @@ const LandingPage = () => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-center space-x-3"
+            className="flex items-center space-x-1"
           >
-            <div className="w-10 h-10 bg-gradient rounded-xl flex items-center justify-center glow">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
+            
+            <div className="w-8 h-8 sm:w-10 sm:h-10 ">
+    <img
+  src="/favicon.png"
+  alt="ToknTalk Logo"
+  className="w-8 h-8 sm:w-10 sm:h-10"
+/>
+    </div>
             <span className="text-xl sm:text-2xl font-bold gradient-text">
               ToknTalk
             </span>
@@ -590,10 +595,15 @@ const LandingPage = () => {
         {/* Footer */}
         <footer className="py-8 sm:py-12 px-4 sm:px-6 border-t border-accent/20">
           <div className="max-w-7xl mx-auto text-center">
-            <div className="flex justify-center items-center space-x-3 mb-6">
-              <div className="w-8 h-8 bg-gradient rounded-lg flex items-center justify-center glow">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
+            <div className="flex justify-center items-center space-x-1 mb-6">
+             
+              <div className="w-8 h-8 sm:w-10 sm:h-10 ">
+    <img
+  src="/favicon.png"
+  alt="ToknTalk Logo"
+  className="w-8 h-8 sm:w-10 sm:h-10 "
+/>
+    </div>
               <span className="text-lg sm:text-xl font-bold gradient-text">
                 ToknTalk
               </span>

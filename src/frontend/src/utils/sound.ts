@@ -10,15 +10,12 @@ class SoundManager {
 
   private initializeSounds() {
     try {
-      // Create notification sound (short beep)
       this.notificationAudio = new Audio();
-      this.notificationAudio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT';
-      
-      // Create message sound (different tone)
+      this.notificationAudio.src = '/sounds/notification.mp3'; // Use your file name
+  
       this.messageAudio = new Audio();
-      this.messageAudio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT';
-      
-      // Preload the audio
+      this.messageAudio.src = '/sounds/message.mp3'; // Or another file if you have it
+  
       this.notificationAudio.load();
       this.messageAudio.load();
     } catch (error) {
