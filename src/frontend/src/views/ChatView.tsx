@@ -119,22 +119,36 @@ const ChatView: React.FC<ChatViewProps> = ({ initialUserId }) => {
     try {
       if (showLoading) setLoading(true);
       
-      const actor = await backendService.getAuthenticatedActor();
-      const threads = await actor.get_chat_threads() as BackendChatThread[];
+      const threads = await backendService.getChatThreads() as BackendChatThread[];
       
-      const formattedThreads: ChatThread[] = threads.map(thread => ({
-        id: thread.id,
-        participants: thread.participants.map(principalToString),
-        last_message: thread.last_message ? {
-          id: thread.last_message.id,
-          from: principalToString(thread.last_message.from),
-          to: principalToString(thread.last_message.to),
-          content: thread.last_message.content,
-          created_at: thread.last_message.created_at,
-          read: thread.last_message.read
-        } : null,
-        updated_at: thread.updated_at
-      }));
+      const formattedThreads: ChatThread[] = threads.map(thread => {
+        // Handle last_message which might be an array or object
+        const lastMsg = Array.isArray(thread.last_message) ? thread.last_message[0] : thread.last_message;
+        
+        return {
+          id: thread.id,
+          participants: thread.participants.map(p => {
+            // Handle both Principal objects and strings
+            if (typeof p === 'string') {
+              return p;
+            } else if (p && typeof p.toString === 'function') {
+              return p.toString();
+            } else {
+              console.warn('Invalid participant:', p);
+              return '';
+            }
+          }).filter(p => p !== ''),
+          last_message: lastMsg ? {
+            id: lastMsg.id,
+            from: typeof lastMsg.from === 'string' ? lastMsg.from : principalToString(lastMsg.from),
+            to: typeof lastMsg.to === 'string' ? lastMsg.to : principalToString(lastMsg.to),
+            content: lastMsg.content,
+            created_at: lastMsg.created_at,
+            read: lastMsg.read
+          } : null,
+          updated_at: thread.updated_at
+        };
+      });
       
       setChatThreads(formattedThreads);
       
@@ -168,7 +182,7 @@ const ChatView: React.FC<ChatViewProps> = ({ initialUserId }) => {
           const result = await backendService.getUserProfile(userId);
           if ('Ok' in result) {
             const profile = result.Ok;
-            profiles[userId] = { ...profile, id: principalToString(profile.id) };
+            profiles[userId] = { ...profile, id: typeof profile.id === 'string' ? profile.id : principalToString(profile.id) };
           }
         } catch (err) {
           // Ignore individual profile fetch errors
@@ -187,19 +201,25 @@ const ChatView: React.FC<ChatViewProps> = ({ initialUserId }) => {
     try {
       if (showLoading) setLoading(true);
       
-      const actor = await backendService.getAuthenticatedActor();
-      const messagesData = await actor.get_messages(selectedUser) as BackendMessage[];
+      const messagesData = await backendService.getMessages(selectedUser) as BackendMessage[];
       
       const formattedMessages: Message[] = messagesData.map(msg => ({
         id: msg.id,
-        from: principalToString(msg.from),
-        to: principalToString(msg.to),
+        from: typeof msg.from === 'string' ? msg.from : principalToString(msg.from),
+        to: typeof msg.to === 'string' ? msg.to : principalToString(msg.to),
         content: msg.content,
         created_at: msg.created_at,
         read: msg.read
       }));
       
-      setMessages(formattedMessages);
+      // Sort messages by timestamp (oldest first)
+      const sortedMessages = formattedMessages.sort((a, b) => {
+        const timeA = typeof a.created_at === 'bigint' ? Number(a.created_at) : a.created_at;
+        const timeB = typeof b.created_at === 'bigint' ? Number(b.created_at) : b.created_at;
+        return timeA - timeB;
+      });
+      
+      setMessages(sortedMessages);
       
       // Update last message time for polling
       if (formattedMessages.length > 0) {
@@ -214,20 +234,27 @@ const ChatView: React.FC<ChatViewProps> = ({ initialUserId }) => {
       
       messagePollingIntervalRef.current = setInterval(async () => {
         try {
-          const newMessagesData = await actor.get_messages(selectedUser) as BackendMessage[];
+          const newMessagesData = await backendService.getMessages(selectedUser) as BackendMessage[];
           const newFormattedMessages: Message[] = newMessagesData.map(msg => ({
             id: msg.id,
-            from: principalToString(msg.from),
-            to: principalToString(msg.to),
+            from: typeof msg.from === 'string' ? msg.from : principalToString(msg.from),
+            to: typeof msg.to === 'string' ? msg.to : principalToString(msg.to),
             content: msg.content,
             created_at: msg.created_at,
             read: msg.read
           }));
           
+          // Sort new messages by timestamp (oldest first)
+          const sortedNewMessages = newFormattedMessages.sort((a, b) => {
+            const timeA = typeof a.created_at === 'bigint' ? Number(a.created_at) : a.created_at;
+            const timeB = typeof b.created_at === 'bigint' ? Number(b.created_at) : b.created_at;
+            return timeA - timeB;
+          });
+          
           // Only update if there are new messages
-          if (newFormattedMessages.length > formattedMessages.length) {
-            setMessages(newFormattedMessages);
-            setLastMessageTime(newFormattedMessages[newFormattedMessages.length - 1].created_at);
+          if (sortedNewMessages.length > formattedMessages.length) {
+            setMessages(sortedNewMessages);
+            setLastMessageTime(sortedNewMessages[sortedNewMessages.length - 1].created_at);
           }
         } catch (err) {
           console.error('Error polling for new messages:', err);
@@ -245,12 +272,14 @@ const ChatView: React.FC<ChatViewProps> = ({ initialUserId }) => {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedUser || !authState.isAuthenticated) return;
 
+    // Debug log for selectedUser and newMessage
+    console.log('Sending message to:', selectedUser, 'Message:', newMessage);
+
     try {
       setSendingMessage(true);
       setError(null);
       
-      const actor = await backendService.getAuthenticatedActor();
-      const result = await actor.send_message(selectedUser, newMessage);
+      const result = await backendService.sendMessage(selectedUser, newMessage);
       
       if (result) {
         setNewMessage('');

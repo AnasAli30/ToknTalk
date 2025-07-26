@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Setting up ICP Vibe Coding development environment..."
+echo "🚀 Setting up  development environment..."
 
 # Install npm dependencies
 echo "📦 Installing npm dependencies..."
@@ -24,8 +24,5 @@ echo "🦀 Setting up Rust tools..."
 rustup component add rustfmt
 rustup component add clippy
 
-# Install Ollama for local LLM support
-echo "🤖 Installing Ollama for LLM support..."
-curl -fsSL https://ollama.com/install.sh | sh
 
 echo "✅ Development environment setup complete!"

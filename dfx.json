@@ -18,7 +18,7 @@
     },
 
     "backend": {
-      "dependencies": ["llm", "internet_identity"],
+      "dependencies": [ "internet_identity"],
       "candid": "src/backend/backend.did",
       "package": "backend",
       "type": "rust",
