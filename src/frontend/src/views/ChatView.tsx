@@ -1,13 +1,21 @@
 import { useEffect, useState, useRef, KeyboardEvent, ChangeEvent } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  MessageCircle, 
+  Send, 
+  User, 
+  Calendar,
+  Loader2,
+  ArrowLeft,
+  Search,
+  MoreHorizontal
+} from 'lucide-react';
 import { backendService } from '../services/backendService';
 import { Button, InputField } from '../components';
 import { useAuth } from '../context/AuthContext';
 import { principalToString } from '../utils/principal';
-import { MessageCircle } from 'lucide-react'; // Added for new icon
-import { AnimatePresence, motion } from 'framer-motion'; // Added for new animations
 
 // Import types from backend declarations
-// Use any for now since the types might not be generated yet
 interface BackendChatThread {
   id: string;
   participants: any[];
@@ -39,7 +47,6 @@ interface UserProfile {
   username: string;
   bio: string[];
   avatar_url: string[];
-  // Add any other properties as needed
 }
 
 interface ChatViewProps {
@@ -58,6 +65,7 @@ const ChatView: React.FC<ChatViewProps> = ({ initialUserId }) => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastMessageTime, setLastMessageTime] = useState<bigint>(BigInt(0));
+  const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const messagePollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -98,35 +106,7 @@ const ChatView: React.FC<ChatViewProps> = ({ initialUserId }) => {
     }
   }, [initialUserId, authState.isAuthenticated]);
 
-  // Fetch messages when a thread is selected
-  useEffect(() => {
-    if (selectedUser) {
-      fetchMessages();
-      
-      // Clear existing message polling interval
-      if (messagePollingIntervalRef.current) {
-        clearInterval(messagePollingIntervalRef.current);
-      }
-      
-      // Start polling for new messages
-      messagePollingIntervalRef.current = setInterval(() => {
-        fetchMessages(false); // Don't set loading state for polling
-      }, MESSAGE_POLLING_INTERVAL);
-    } else {
-      // Clear message polling when no user is selected
-      if (messagePollingIntervalRef.current) {
-        clearInterval(messagePollingIntervalRef.current);
-      }
-    }
-    
-    return () => {
-      if (messagePollingIntervalRef.current) {
-        clearInterval(messagePollingIntervalRef.current);
-      }
-    };
-  }, [selectedUser]);
-
-  // Scroll to bottom when messages change
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -137,205 +117,149 @@ const ChatView: React.FC<ChatViewProps> = ({ initialUserId }) => {
 
   const fetchChatThreads = async (showLoading = true) => {
     try {
-      if (showLoading) {
-        setLoading(true);
-      }
+      if (showLoading) setLoading(true);
       
-      const result = await backendService.getChatThreads();
+      const actor = await backendService.getAuthenticatedActor();
+      const threads = await actor.get_chat_threads() as BackendChatThread[];
       
-      // Convert principals to strings with null checks
-      const threads: ChatThread[] = (result as BackendChatThread[]).map((thread: BackendChatThread) => {
-        try {
-          return {
-            ...thread,
-            participants: thread.participants.map(p => p ? principalToString(p) : 'unknown'),
-            last_message: thread.last_message ? {
-              ...thread.last_message,
-              from: thread.last_message.from ? principalToString(thread.last_message.from) : 'unknown',
-              to: thread.last_message.to ? principalToString(thread.last_message.to) : 'unknown'
-            } : null
-          };
-        } catch (err) {
-          console.error("Error processing chat thread:", err, thread);
-          // Return a fallback thread object
-          return {
-            id: thread.id || 'unknown',
-            participants: ['unknown'],
-            last_message: null,
-            updated_at: thread.updated_at || BigInt(0)
-          };
-        }
-      });
+      const formattedThreads: ChatThread[] = threads.map(thread => ({
+        id: thread.id,
+        participants: thread.participants.map(principalToString),
+        last_message: thread.last_message ? {
+          id: thread.last_message.id,
+          from: principalToString(thread.last_message.from),
+          to: principalToString(thread.last_message.to),
+          content: thread.last_message.content,
+          created_at: thread.last_message.created_at,
+          read: thread.last_message.read
+        } : null,
+        updated_at: thread.updated_at
+      }));
       
-      // Sort threads by most recent message
-      threads.sort((a, b) => Number(b.updated_at - a.updated_at));
-      
-      setChatThreads(threads);
+      setChatThreads(formattedThreads);
       
       // Fetch user profiles for all participants
-      const uniqueUsers = new Set<string>();
-      threads.forEach(thread => {
-        thread.participants.forEach(p => {
-          if (p !== 'unknown' && p !== authState.principal) {
-            uniqueUsers.add(p);
+      const allUserIds = new Set<string>();
+      formattedThreads.forEach(thread => {
+        thread.participants.forEach(userId => {
+          if (userId !== authState.principal) {
+            allUserIds.add(userId);
           }
         });
       });
       
-      // Only fetch profiles if we have new users
-      const newUsers = Array.from(uniqueUsers).filter(userId => !userProfiles[userId]);
-      if (newUsers.length > 0) {
-        await fetchUserProfiles(newUsers);
+      if (allUserIds.size > 0) {
+        await fetchUserProfiles(Array.from(allUserIds));
       }
-      
     } catch (err) {
       console.error('Error fetching chat threads:', err);
-      if (showLoading) {
-        setError('Failed to load chat threads');
-      }
+      setError('Failed to load chat threads');
     } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
+      if (showLoading) setLoading(false);
     }
   };
 
   const fetchUserProfiles = async (userIds: string[]) => {
-    const profiles: Record<string, UserProfile> = {};
-    
-    for (const userId of userIds) {
-      try {
-        const profileResult = await backendService.getUserProfile(userId);
-        if ('Ok' in profileResult) {
-          const profile = profileResult.Ok;
-          // Only extract the properties we need
-          profiles[userId] = {
-            id: principalToString(profile.id),
-            username: profile.username,
-            bio: profile.bio || [],
-            avatar_url: profile.avatar_url || []
-          };
+    try {
+      const profiles: Record<string, UserProfile> = {};
+      
+      for (const userId of userIds) {
+        try {
+          const result = await backendService.getUserProfile(userId);
+          if ('Ok' in result) {
+            const profile = result.Ok;
+            profiles[userId] = { ...profile, id: principalToString(profile.id) };
+          }
+        } catch (err) {
+          // Ignore individual profile fetch errors
         }
-      } catch (err) {
-        console.error(`Failed to fetch profile for ${userId}:`, err);
       }
+      
+      setUserProfiles(prev => ({ ...prev, ...profiles }));
+    } catch (err) {
+      console.error('Error fetching user profiles:', err);
     }
-    
-    setUserProfiles(prev => ({...prev, ...profiles}));
   };
 
   const fetchMessages = async (showLoading = true) => {
     if (!selectedUser) return;
     
     try {
-      if (showLoading) {
-        setLoading(true);
+      if (showLoading) setLoading(true);
+      
+      const actor = await backendService.getAuthenticatedActor();
+      const messagesData = await actor.get_messages(selectedUser) as BackendMessage[];
+      
+      const formattedMessages: Message[] = messagesData.map(msg => ({
+        id: msg.id,
+        from: principalToString(msg.from),
+        to: principalToString(msg.to),
+        content: msg.content,
+        created_at: msg.created_at,
+        read: msg.read
+      }));
+      
+      setMessages(formattedMessages);
+      
+      // Update last message time for polling
+      if (formattedMessages.length > 0) {
+        const latestMessage = formattedMessages[formattedMessages.length - 1];
+        setLastMessageTime(latestMessage.created_at);
       }
       
-      const result = await backendService.getMessages(selectedUser);
+      // Start polling for new messages
+      if (messagePollingIntervalRef.current) {
+        clearInterval(messagePollingIntervalRef.current);
+      }
       
-      // Convert principals to strings with null checks
-      const fetchedMessages: Message[] = (result as BackendMessage[]).map((message: BackendMessage) => {
+      messagePollingIntervalRef.current = setInterval(async () => {
         try {
-          return {
-            ...message,
-            from: message.from ? principalToString(message.from) : 'unknown',
-            to: message.to ? principalToString(message.to) : 'unknown'
-          };
-        } catch (err) {
-          console.error("Error processing message:", err, message);
-          // Return a fallback message object
-          return {
-            id: message.id || BigInt(0),
-            from: 'unknown',
-            to: 'unknown',
-            content: message.content || '',
-            created_at: message.created_at || BigInt(0),
-            read: message.read || false
-          };
-        }
-      });
-      
-      // Sort messages by creation time
-      fetchedMessages.sort((a, b) => Number(a.created_at - b.created_at));
-      
-      // Check if we have new messages
-      let hasNewMessages = false;
-      if (fetchedMessages.length !== messages.length) {
-        hasNewMessages = true;
-      } else if (fetchedMessages.length > 0) {
-        const lastFetchedMessage = fetchedMessages[fetchedMessages.length - 1];
-        if (lastMessageTime < lastFetchedMessage.created_at) {
-          hasNewMessages = true;
-          setLastMessageTime(lastFetchedMessage.created_at);
-        }
-      }
-      
-      // Only update state if we have new messages to avoid unnecessary re-renders
-      if (hasNewMessages) {
-        setMessages(fetchedMessages);
-        
-        // Mark messages as read if there are unread messages from the selected user
-        const unreadMessages = fetchedMessages.filter(m => 
-          m.from === selectedUser && !m.read
-        );
-        
-        if (unreadMessages.length > 0) {
-          await backendService.markMessagesAsRead(selectedUser);
+          const newMessagesData = await actor.get_messages(selectedUser) as BackendMessage[];
+          const newFormattedMessages: Message[] = newMessagesData.map(msg => ({
+            id: msg.id,
+            from: principalToString(msg.from),
+            to: principalToString(msg.to),
+            content: msg.content,
+            created_at: msg.created_at,
+            read: msg.read
+          }));
           
-          // Update the threads to reflect read status
-          fetchChatThreads(false);
+          // Only update if there are new messages
+          if (newFormattedMessages.length > formattedMessages.length) {
+            setMessages(newFormattedMessages);
+            setLastMessageTime(newFormattedMessages[newFormattedMessages.length - 1].created_at);
+          }
+        } catch (err) {
+          console.error('Error polling for new messages:', err);
         }
-      }
+      }, MESSAGE_POLLING_INTERVAL);
       
     } catch (err) {
       console.error('Error fetching messages:', err);
-      if (showLoading) {
-        setError('Failed to load messages');
-      }
+      setError('Failed to load messages');
     } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
+      if (showLoading) setLoading(false);
     }
   };
 
   const handleSendMessage = async () => {
-    if (!selectedUser || !newMessage.trim() || sendingMessage) return;
-    
+    if (!newMessage.trim() || !selectedUser || !authState.isAuthenticated) return;
+
     try {
       setSendingMessage(true);
       setError(null);
       
-      // Optimistically add the message to the UI
-      const optimisticMessage: Message = {
-        id: BigInt(Date.now()),
-        from: authState.principal || 'unknown',
-        to: selectedUser,
-        content: newMessage.trim(),
-        created_at: BigInt(Date.now() * 1000000),
-        read: false
-      };
+      const actor = await backendService.getAuthenticatedActor();
+      const result = await actor.send_message(selectedUser, newMessage);
       
-      setMessages(prev => [...prev, optimisticMessage]);
-      setNewMessage('');
-      
-      // Actually send the message
-      await backendService.sendMessage(selectedUser, optimisticMessage.content);
-      
-      // Refresh messages to get the real message ID
-      await fetchMessages(false);
-      
-      // Also refresh threads to update the last message
-      await fetchChatThreads(false);
-      
+      if (result) {
+        setNewMessage('');
+        // Fetch updated messages
+        await fetchMessages(false);
+      }
     } catch (err) {
       console.error('Error sending message:', err);
-      setError('Failed to send message. Please try again.');
-      
-      // Remove the optimistic message on error
-      setMessages(prev => prev.filter(msg => msg.id !== BigInt(Date.now())));
-      setNewMessage(newMessage.trim());
+      setError('Failed to send message');
     } finally {
       setSendingMessage(false);
     }
@@ -344,56 +268,33 @@ const ChatView: React.FC<ChatViewProps> = ({ initialUserId }) => {
   const selectThread = (threadId: string, userId: string) => {
     setSelectedThread(threadId);
     setSelectedUser(userId);
-    setError(null);
-    setLastMessageTime(BigInt(0)); // Reset last message time
+    setMessages([]);
+    setNewMessage('');
+    
+    // Fetch messages for the selected user
+    fetchMessages();
   };
 
   const formatDate = (timestamp: bigint) => {
-    try {
-      const date = new Date(Number(timestamp) / 1000000);
-      const now = new Date();
-      
-      // If the message is from today, just show the time
-      if (date.toDateString() === now.toDateString()) {
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      }
-      
-      // If the message is from this week, show the day name and time
-      const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-      if (diffDays < 7) {
-        return `${date.toLocaleDateString([], { weekday: 'short' })} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-      }
-      
-      // Otherwise show the full date
-      return date.toLocaleString([], { 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit', 
-        minute: '2-digit'
-      });
-    } catch (err) {
-      console.error("Error formatting date:", err, timestamp);
-      return "Unknown date";
+    const date = new Date(Number(timestamp) / 1000000);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)}h ago`;
+    } else {
+      return date.toLocaleDateString();
     }
   };
 
   const getOtherParticipant = (thread: ChatThread) => {
-    try {
-      const otherParticipant = thread.participants.find(p => p !== authState.principal);
-      return otherParticipant || '';
-    } catch (err) {
-      console.error("Error getting other participant:", err, thread);
-      return '';
-    }
+    return thread.participants.find(userId => userId !== authState.principal) || '';
   };
 
   const getUsernameForId = (userId: string) => {
-    try {
-      return userProfiles[userId]?.username || userId.slice(0, 8) + '...';
-    } catch (err) {
-      console.error("Error getting username for ID:", err, userId);
-      return "Unknown user";
-    }
+    return userProfiles[userId]?.username || userId.slice(0, 8);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -404,209 +305,217 @@ const ChatView: React.FC<ChatViewProps> = ({ initialUserId }) => {
   };
 
   const getAvatarUrl = (userId: string) => {
-    if (userProfiles[userId]?.avatar_url && userProfiles[userId].avatar_url.length > 0) {
-      return userProfiles[userId].avatar_url[0];
-    }
-    // Return a default avatar
-    return 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+    return userProfiles[userId]?.avatar_url[0] || '';
   };
 
-  if (!authState.isAuthenticated) {
+  const filteredThreads = chatThreads.filter(thread => {
+    const otherUser = getOtherParticipant(thread);
+    const username = getUsernameForId(otherUser);
+    return username.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  if (loading && chatThreads.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-card rounded-xl p-8 border border-border text-center">
-          <MessageCircle className="w-16 h-16 mx-auto mb-4 text-text-secondary opacity-50" />
-          <p className="text-text-secondary">Please log in to use chat</p>
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+        <div className="bg-card rounded-xl p-6 border border-border">
+          <div className="flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-accent" />
+            <span className="ml-3 text-text-secondary">Loading chats...</span>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center space-x-3">
-        <div className="w-12 h-12 bg-gradient rounded-xl flex items-center justify-center">
-          <MessageCircle className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">Messages</h1>
-          <p className="text-text-secondary">Connect with your community</p>
-        </div>
-      </div>
+    <div className="max-w-4xl mx-auto p-4 sm:p-6">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="flex h-[600px] sm:h-[700px]">
+          {/* Chat Threads Sidebar */}
+          <div className={`w-full sm:w-80 border-r border-border flex flex-col ${selectedUser ? 'hidden sm:flex' : 'flex'}`}>
+            {/* Header */}
+            <div className="p-4 border-b border-border">
+              <h2 className="text-xl font-bold text-text">Messages</h2>
+              <div className="mt-3 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-secondary" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search conversations..."
+                  className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-text focus:border-accent focus:outline-none text-sm"
+                />
+              </div>
+            </div>
 
-      {/* Error Message */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex items-center space-x-2 p-4 bg-red-50 border border-red-200 rounded-lg"
-          >
-            <span className="text-red-700">{error}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      <div className="flex h-[600px] gap-6">
-        {/* Chat threads list */}
-        <div className="w-1/3 bg-card rounded-xl border border-border overflow-hidden flex flex-col">
-          <div className="p-4 bg-background border-b border-border font-semibold text-text-primary">
-            Conversations
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {loading && chatThreads.length === 0 ? (
-              <div className="p-4 text-text-secondary">Loading conversations...</div>
-            ) : chatThreads.length === 0 ? (
-              <div className="p-4 text-text-secondary">No conversations yet</div>
-            ) : (
-              chatThreads.map(thread => {
-                try {
-                  const otherUser = getOtherParticipant(thread);
-                  const hasUnreadMessages = thread.last_message && 
-                    thread.last_message.from !== authState.principal && 
-                    !thread.last_message.read;
+            {/* Threads List */}
+            <div className="flex-1 overflow-y-auto">
+              {filteredThreads.length === 0 ? (
+                <div className="p-6 text-center text-text-secondary">
+                  <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No conversations yet</p>
+                  <p className="text-sm mt-1">Start a conversation with someone!</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredThreads.map((thread) => {
+                    const otherUser = getOtherParticipant(thread);
+                    const username = getUsernameForId(otherUser);
+                    const avatarUrl = getAvatarUrl(otherUser);
+                    const isSelected = selectedUser === otherUser;
                     
-                  return (
-                    <motion.div 
-                      key={thread.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className={`p-4 border-b border-border cursor-pointer hover:bg-accent/5 transition-all duration-200 ${
-                        selectedThread === thread.id ? 'bg-accent/10 border-accent/20' : ''
-                      } ${hasUnreadMessages ? 'bg-accent/5' : ''}`}
-                      onClick={() => selectThread(thread.id, otherUser)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient overflow-hidden flex-shrink-0">
-                          <img 
-                            src={getAvatarUrl(otherUser)} 
-                            alt={getUsernameForId(otherUser)} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold flex items-center justify-between">
-                            <span className="truncate text-text-primary">{getUsernameForId(otherUser)}</span>
-                            {hasUnreadMessages && (
-                              <span className="w-3 h-3 bg-accent rounded-full flex-shrink-0 ml-2"></span>
+                    return (
+                      <motion.button
+                        key={thread.id}
+                        onClick={() => selectThread(thread.id, otherUser)}
+                        className={`w-full p-4 text-left hover:bg-background transition-colors ${
+                          isSelected ? 'bg-background border-r-2 border-accent' : ''
+                        }`}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient overflow-hidden flex-shrink-0">
+                            {avatarUrl ? (
+                              <img src={avatarUrl} alt={username} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
+                                {username.slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-text truncate">{username}</div>
+                            {thread.last_message && (
+                              <div className="text-text-secondary text-sm truncate">
+                                {thread.last_message.content}
+                              </div>
                             )}
                           </div>
                           {thread.last_message && (
-                            <div className="text-sm text-text-secondary truncate">
-                              {thread.last_message.from === authState.principal ? 'You: ' : ''}
-                              {thread.last_message.content}
+                            <div className="text-text-secondary text-xs">
+                              {formatDate(thread.last_message.created_at)}
                             </div>
                           )}
-                          <div className="text-xs text-text-muted mt-1">
-                            {formatDate(thread.updated_at)}
-                          </div>
                         </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Chat Messages */}
+          <div className={`flex-1 flex flex-col ${selectedUser ? 'flex' : 'hidden sm:flex'}`}>
+            {selectedUser ? (
+              <>
+                {/* Chat Header */}
+                <div className="p-4 border-b border-border flex items-center gap-3">
+                  <button
+                    onClick={() => setSelectedUser(null)}
+                    className="sm:hidden p-2 rounded-lg hover:bg-background transition-colors"
+                  >
+                    <ArrowLeft className="w-5 h-5 text-text-secondary" />
+                  </button>
+                  <div className="w-10 h-10 rounded-full bg-gradient overflow-hidden">
+                    {getAvatarUrl(selectedUser) ? (
+                      <img src={getAvatarUrl(selectedUser)} alt={getUsernameForId(selectedUser)} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
+                        {getUsernameForId(selectedUser).slice(0, 2).toUpperCase()}
                       </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-text">{getUsernameForId(selectedUser)}</div>
+                    <div className="text-text-secondary text-sm">Active now</div>
+                  </div>
+                  <button className="p-2 rounded-lg hover:bg-background transition-colors">
+                    <MoreHorizontal className="w-5 h-5 text-text-secondary" />
+                  </button>
+                </div>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {messages.length === 0 ? (
+                    <div className="text-center py-8 text-text-secondary">
+                      <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No messages yet</p>
+                      <p className="text-sm mt-1">Start the conversation!</p>
+                    </div>
+                  ) : (
+                    messages.map((message) => {
+                      const isOwnMessage = message.from === authState.principal;
+                      
+                      return (
+                        <motion.div
+                          key={message.id.toString()}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div className={`max-w-xs sm:max-w-md lg:max-w-lg ${
+                            isOwnMessage ? 'bg-accent text-white' : 'bg-background border border-border'
+                          } rounded-lg p-3`}>
+                            <div className="text-sm">{message.content}</div>
+                            <div className={`text-xs mt-1 ${
+                              isOwnMessage ? 'text-white/70' : 'text-text-secondary'
+                            }`}>
+                              {formatDate(message.created_at)}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Message Input */}
+                <div className="p-4 border-t border-border">
+                  <div className="flex gap-3">
+                    <input
+                      value={newMessage}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => setNewMessage(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Type a message..."
+                      className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-text focus:border-accent focus:outline-none"
+                      disabled={sendingMessage}
+                    />
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={sendingMessage || !newMessage.trim()}
+                      className="bg-accent hover:bg-accent/80 text-white px-4 py-2"
+                    >
+                      {sendingMessage ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-error text-sm mt-2 p-2 bg-error/10 rounded-lg border border-error/20"
+                    >
+                      {error}
                     </motion.div>
-                  );
-                } catch (err) {
-                  console.error("Error rendering chat thread:", err, thread);
-                  return null; // Skip rendering this thread
-                }
-              }).filter(Boolean) // Filter out null values
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-text-secondary">
+                <div className="text-center">
+                  <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">Select a conversation</p>
+                  <p className="text-sm mt-1">Choose a chat to start messaging</p>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-        
-        {/* Chat messages */}
-        <div className="w-2/3 bg-card rounded-xl border border-border overflow-hidden flex flex-col">
-          {selectedUser ? (
-            <>
-              <div className="p-4 bg-background border-b border-border flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient overflow-hidden">
-                  <img 
-                    src={getAvatarUrl(selectedUser)} 
-                    alt={getUsernameForId(selectedUser)} 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <span className="font-semibold text-text-primary">{getUsernameForId(selectedUser)}</span>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.length === 0 ? (
-                  <div className="text-center text-text-secondary py-8">
-                    {loading ? 'Loading messages...' : 'No messages yet. Say hello!'}
-                  </div>
-                ) : (
-                  messages.map((message, index) => {
-                    const isLastInGroup = index === messages.length - 1 || 
-                      messages[index + 1].from !== message.from;
-                    
-                    return (
-                      <motion.div 
-                        key={message.id.toString()}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`${
-                          message.from === authState.principal
-                            ? 'ml-auto'
-                            : ''
-                        } max-w-[80%]`}
-                      >
-                        {/* Message bubble */}
-                        <div className={`p-3 rounded-xl ${
-                          message.from === authState.principal
-                            ? 'bg-accent text-white rounded-br-md'
-                            : 'bg-background border border-border rounded-bl-md'
-                        }`}>
-                          <div className="text-sm">{message.content}</div>
-                        </div>
-                        
-                        {/* Timestamp and read status */}
-                        {isLastInGroup && (
-                          <div className={`text-xs text-text-muted mt-1 flex ${
-                            message.from === authState.principal ? 'justify-end' : ''
-                          }`}>
-                            <span>{formatDate(message.created_at)}</span>
-                            {message.from === authState.principal && (
-                              <span className="ml-2">
-                                {message.read ? '✓✓' : '✓'}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </motion.div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-              
-              <div className="p-4 bg-background border-t border-border flex gap-3">
-                <InputField
-                  value={newMessage}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1"
-                  onKeyDown={handleKeyDown}
-                  disabled={sendingMessage}
-                />
-                <Button 
-                  onClick={handleSendMessage} 
-                  disabled={loading || sendingMessage || !newMessage.trim()}
-                  className="bg-accent hover:bg-accent/90 text-white px-6"
-                >
-                  {sendingMessage ? 'Sending...' : 'Send'}
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-text-secondary p-8">
-              <div className="w-20 h-20 mb-6 text-6xl">💬</div>
-              <div className="text-xl font-semibold mb-3 text-text-primary">Your Messages</div>
-              <p className="text-center text-sm max-w-md">
-                Select a conversation to start chatting or find new people to message in the Explore tab.
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>

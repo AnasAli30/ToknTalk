@@ -416,7 +416,7 @@ const AppContent = () => {
               currentView={currentView}
             />
           </div>
-          
+
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto pt-16 lg:pt-0">
             <AnimatePresence mode="wait">
