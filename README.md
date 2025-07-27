@@ -1,29 +1,15 @@
-# 🚀 ToknTalk - Decentralized Social Media on Internet Computer
+![github-submission-banner](https://cdn.dorahacks.io/static/files/1976f1055dec5982fae1b21492e835fb.jpg)
 
-<div align="center">
+# 🚀 ToknTalk
 
-![ToknTalk Logo](https://img.shields.io/badge/ToknTalk-Social%20Media-blue?style=for-the-badge&logo=internet-computer)
-![Internet Computer](https://img.shields.io/badge/Internet%20Computer-Platform-green?style=for-the-badge&logo=internet-computer)
-![Rust](https://img.shields.io/badge/Rust-Backend-orange?style=for-the-badge&logo=rust)
-![React](https://img.shields.io/badge/React-Frontend-blue?style=for-the-badge&logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-Language-blue?style=for-the-badge&logo=typescript)
+>  Decentralized Social Media on Internet Computer
+
+
+<div align="left">
 
 **A fully decentralized social media platform built on the Internet Computer with built-in crypto wallet, AI integration, and modern responsive design.**
 
-[![Deploy to Internet Computer](https://img.shields.io/badge/Deploy%20to-Internet%20Computer-blue?style=for-the-badge&logo=internet-computer)](https://internetcomputer.org/)
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg?style=for-the-badge)](https://opensource.org/licenses/ISC)
-
 </div>
-
----
-
-## 📋 Table of Contents
-
-- [🌟 Features](#-features)
-- [🛠️ Tech Stack](#️-tech-stack)
-- [🚀 Quick Start](#-quick-start)
-- [🏗️ Architecture](#️-architecture)
-- [📦 Deployment](#-deployment)
 
 ---
 
@@ -43,12 +29,6 @@
 - **💰 Direct Tips** - Tip users directly from their profiles with $ button
 - **📊 Transaction History** - Complete transaction tracking and history
 - **🔐 Secure Storage** - Principal-based authentication and secure transfers
-
-### 🤖 AI Integration
-- **💬 AI Chat Agents** - Intelligent chat bots with smart contract execution
-- **🧠 LLM Integration** - AI-powered content generation and assistance
-- **🔧 Tool Calls** - AI agents can execute actions through smart contracts
-- **📝 Content Enhancement** - AI-assisted post creation and optimization
 
 ### 🔐 Security & Privacy
 - **🔑 Internet Identity** - Secure authentication with DFINITY's II
@@ -82,208 +62,106 @@
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Deployment and build info (use Linux)
 
-### Prerequisites
-
-- **Node.js** (v18 or higher)
-- **Rust** (latest stable)
-- **DFX** (v0.25.0 or higher)
-- **PNPM** (recommended package manager)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/tokntalk.git
-   cd tokntalk
-   ```
-
-2. **Install dependencies (IMPORTANT: Use --force)**
-   ```bash
-   npm i --force
-   ```
-
-3. **Start the local Internet Computer**
-   ```bash
-   dfx start
-   ```
-
-4. **Deploy the application**
-   ```bash
-   dfx deploy --no-wallet
-   ```
-
-5. **Open the application**
-   ```
-   Frontend: http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:4943/
-   ```
-
-### Development Commands
+Follow these steps to run the ToknTalk project locally:
 
 ```bash
-# Start development server
-npm run dev
-
-# Build the application
-npm run build
-
-# Run tests
-npm run test
-
-# Format code
-npm run format
-
-# Lint code
-npm run lint
+# Clone the repository
+git clone https://github.com/yourusername/tokntalk.git
+cd tokntalk
 ```
-
----
-
-## 🏗️ Architecture
-
-### Canister Structure
-```
-├── backend/          # Rust backend canister
-├── frontend/         # React frontend assets
-├── internet_identity/ # Authentication canister
-└── llm/             # AI integration canister
-```
-
-### Key Components
-
-#### Backend (Rust)
-- **User Management** - Profile creation, authentication, social connections
-- **Content System** - Posts, comments, likes, reshares
-- **Wallet System** - Token management, transfers, transaction history
-- **AI Integration** - LLM integration, chat agents, smart contract execution
-- **Search & Discovery** - User search, hashtag search, trending topics
-
-#### Frontend (React)
-- **Landing Page** - Modern marketing page with animations
-- **Feed View** - Main social media feed with posts and interactions
-- **Profile System** - User profiles, editing, following/followers
-- **Wallet Interface** - Crypto wallet with transfer capabilities
-- **Chat System** - Real-time messaging with AI agents
-- **Search & Explore** - Advanced search and discovery features
-
-### Data Flow
-1. **Authentication** → Internet Identity → Principal ID
-2. **User Actions** → Frontend → Backend Canister → IC Network
-3. **Content Creation** → Posts/Comments → On-chain Storage
-4. **Wallet Operations** → Token Transfers → Transaction History
-5. **AI Integration** → LLM Canister → Smart Contract Execution
-
----
-
-## 📦 Deployment
-
-### Local Development
+Install Rust
 ```bash
-# Start local IC
-dfx start
+sudo apt update
+sudo apt install build-essential
 
-# Deploy to local IC
+# Install Rust using rustup
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Configure your Shell Environment
+source $HOME/.cargo/env
+
+# Verify the Installation.
+rustc --version
+cargo --version
+```
+
+run and deploy the build
+```bash
+# Install dependencies (force install to resolve conflicts)
+npm install --force
+
+# In 1st terminal Start the local Internet Computer 
+dfx start #
+
+# In 2st terminal Deploy the application
 dfx deploy --no-wallet
-
-# Access the application
-open http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:4943/
 ```
 
-### Mainnet Deployment
-```bash
-# Deploy to mainnet
-dfx deploy --network ic --no-wallet
-
-# Set canister controllers
-dfx canister update-settings --all --controller <your-principal-id>
+Now you will get something like this:
+```bash 
+URLs:
+  Frontend canister via browser:
+    frontend:
+      - http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:4943/ (Recommended)
+      - http://127.0.0.1:4943/?canisterId=bkyz2-fmaaa-aaaaa-qaaaq-cai (Legacy)
+    internet_identity:
+      - http://bd3sg-teaaa-aaaaa-qaaba-cai.localhost:4943/ (Recommended)
+      - http://127.0.0.1:4943/?canisterId=bd3sg-teaaa-aaaaa-qaaba-cai (Legacy)
+  Backend canister via Candid interface:
+    backend: http://127.0.0.1:4943/?canisterId=be2us-64aaa-aaaaa-qaabq-cai&id=bnz7o-iuaaa-aaaaa-qaaaa-cai
+    internet_identity: http://127.0.0.1:4943/?canisterId=be2us-64aaa-aaaaa-qaabq-cai&id=bd3sg-teaaa-aaaaa-qaaba-cai
+    llm: http://127.0.0.1:4943/?canisterId=be2us-64aaa-aaaaa-qaabq-cai&id=w36hm-eqaaa-aaaal-qr76a-cai
 ```
-
-### Environment Configuration
-```bash
-# Set environment variables
-export DFX_NETWORK=ic
-export INTERNET_IDENTITY_URL=https://identity.ic0.app
-```
+These are the Login (internet identity) url and Frontend url. 
+#### <b>Create your account using the ``frontend Link``</b>
 
 ---
 
-## 🎯 All Features Summary
+## 🧰 ICP Tech Stack
 
-### ✅ Core Social Media
-- [x] User registration and authentication with Internet Identity
-- [x] Create, edit, and delete posts with text content
-- [x] Image upload and embedding in posts
-- [x] Like, comment, and reshare posts
-- [x] User profiles with avatars, bios, and social stats
-- [x] Follow/unfollow system with mutual connections
-- [x] Real-time notifications for social interactions
-- [x] Search users and posts by keywords
-- [x] Hashtag system with trending topics
-- [x] Personalized feed based on following
-- [x] Post viewer with full post details and comments
-
-### ✅ Crypto Wallet Integration
-- [x] Built-in crypto wallet for each user
-- [x] ICP token transfers between users
-- [x] Direct tipping from user profiles ($ button)
-- [x] Transaction history with sender/receiver details
-- [x] Real-time balance updates
-- [x] Principal ID display and copy functionality
-- [x] Test ICP distribution for development
-- [x] Secure transaction validation
-
-### ✅ AI & Chat Features
-- [x] AI-powered chat agents
-- [x] LLM integration for content generation
-- [x] Smart contract execution through AI agents
-- [x] Tool calling capabilities
-- [x] Real-time messaging system
-- [x] Chat threads and message history
-- [x] AI-assisted content creation
-
-### ✅ Modern UI/UX
-- [x] Responsive design for all devices (mobile, tablet, desktop)
-- [x] Mobile-first navigation with slide-out menu
-- [x] Dark and light theme switching
-- [x] Smooth animations with Framer Motion
-- [x] Modern design with Tailwind CSS
-- [x] Loading states and error handling
-- [x] Touch-friendly interface
-- [x] Backdrop blur effects
-- [x] Professional color scheme and typography
-
-### ✅ Advanced Features
-- [x] Real-time notifications system
-- [x] Trending topics and hashtags
-- [x] User search and discovery
-- [x] Post search and filtering
-- [x] Image viewer with full-screen support
-- [x] Emoji picker for posts
-- [x] Profile completion flow
-- [x] Session management and persistence
-- [x] Error handling and user feedback
-- [x] Performance optimization
-
-### ✅ Technical Features
-- [x] Internet Computer canister architecture
-- [x] Rust backend with Candid interfaces
-- [x] React frontend with TypeScript
-- [x] Vite build system for fast development
-- [x] Tailwind CSS for styling
-- [x] Framer Motion for animations
-- [x] Internet Identity authentication
-- [x] Principal-based user identification
-- [x] On-chain data storage
-- [x] Decentralized architecture
+- **Internet Computer (ICP)** – Core blockchain platform  
+- **dfx SDK** – CLI tool used for building and deploying canisters  
+- **Rust** – Backend language used to write canister logic  
+- **Canisters** – Smart contracts used for storing posts, wallets, and app logic  
+- **Candid** – Interface format for front-end and back-end communication  
+- **ICP On-chain Storage** – Stores content and logic fully on-chain  
 
 ---
 
-<div align="center">
+## 🧱 Challenges During Build
 
-**Built with ❤️ on the Internet Computer**
+### 1. Figuring out the right tech stack  
+We spent time exploring tools and platforms that support AI + Web3 without making things too complex.
 
-[![Internet Computer](https://img.shields.io/badge/Internet%20Computer-Platform-green?style=for-the-badge&logo=internet-computer)](https://internetcomputer.org/)
-[![DFINITY](https://img.shields.io/badge/DFINITY-Foundation-blue?style=for-the-badge)](https://dfinity.org/)
+### 2. Setting up wallets and token logic  
+Getting basic token transfers and wallet features working smoothly was tricky at first.
 
-</div>
+### 3. Keeping the UI simple  
+It was hard to design something that feels like a normal social app but runs on blockchain tech.
+
+### 4. Learning how to integrate AI  
+We’re still experimenting with how to use AI in a useful (not gimmicky) way inside the chat.
+
+### 5. Managing limited time and resources  
+As a small team, balancing dev work, design, and testing is an ongoing challenge.
+
+---
+
+## 🔮 Future Plans
+
+- **Finish core features**  
+  Complete post, chat, wallet, and tipping functionalities.
+
+- **Integrate AI agents**  
+  Add helpful bots that can summarize chats, assist with tasks, or send tokens.
+
+- **Launch mini app system**  
+  Let developers build and launch plug-ins inside the social platform.
+
+- **Improve UI/UX**  
+  Make the app more intuitive and smooth for both crypto and non-crypto users.
+
+- **Test with early users**  
+  Get real feedback from a small group and iterate based on their experience.
